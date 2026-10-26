@@ -46,39 +46,10 @@ O valor total da reserva é calculado automaticamente (número de diárias × di
 
 ### Pré-requisitos
 
+- [Python 3.12 ou superior](https://www.python.org/downloads/) (no Windows, marque **Add python.exe to PATH** na instalação)
 - [Git](https://git-scm.com/)
-- [Python 3.12 ou superior](https://www.python.org/downloads/) (no Windows, marque **Add python.exe to PATH** na instalação). No Linux, o script automático abaixo instala o Python necessário sozinho, sem precisar de `sudo`.
 
-### Opção 1: instalação automática (recomendada)
-
-```bash
-git clone <URL-DO-REPOSITORIO>
-cd naipicar
-```
-
-**Linux / macOS:**
-
-```bash
-chmod +x setup.sh
-./setup.sh
-```
-
-**Windows:** dê dois cliques em `setup.bat` (ou rode `setup.bat` no terminal).
-
-O script cria o ambiente virtual, instala as dependências, cria o banco de dados e importa as marcas e modelos de carros. Ao final, falta apenas criar o administrador e iniciar o servidor:
-
-```bash
-# Linux / macOS
-source venv/bin/activate
-
-# Windows
-venv\Scripts\activate
-
-python manage.py createsuperuser   # pede e-mail, nome, sobrenome, CPF e telefone
-python manage.py runserver
-```
-
-### Opção 2: passo a passo manual
+### Passo a passo
 
 ```bash
 # 1. Clonar o repositório
@@ -99,8 +70,9 @@ python manage.py migrate
 # 5. Criar o usuário administrador (pede e-mail, nome, sobrenome, CPF e telefone)
 python manage.py createsuperuser
 
-# 6. Importar marcas e modelos de carros (arquivos CSV do projeto)
+# 6. Importar as marcas e modelos de carros vendidos no Brasil (arquivo carros-brasil.csv) e importar dados pré colocados.
 python manage.py importar_carros
+python manage.py popular_dados
 
 # 7. Iniciar o servidor
 python manage.py runserver
@@ -108,25 +80,6 @@ python manage.py runserver
 
 > No Windows (PowerShell), se o passo 2 der erro de "execução de scripts desabilitada", rode uma vez:
 > `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
-
-### Problemas comuns
-
-**`ensurepip is not available` ao criar o ambiente virtual (Ubuntu/Debian):** o pacote `python3-venv` não está instalado. Se você não tem `sudo`, use o `setup.sh`, que usa o [uv](https://docs.astral.sh/uv/) e dispensa esse pacote. Se tiver `sudo`:
-
-```bash
-sudo apt update
-sudo apt install python3-venv
-```
-
-**Versão do Python menor que 3.12:** o Django 6.x exige Python 3.12 ou superior. O `setup.sh` resolve isso baixando o Python correto via `uv`. Manualmente:
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-source ~/.bashrc
-uv venv --python 3.12 venv
-source venv/bin/activate
-uv pip install -r requirements.txt
-```
 
 ### Endereços
 
@@ -139,7 +92,7 @@ uv pip install -r requirements.txt
 
 ### Primeiros passos no sistema
 
-1. Entre em `/admin/` com o administrador criado e cadastre as **categorias**, **classes** e a **diária de cada combinação** (Categoria × Classe).
+1. Entre em `/admin/` com o administrador criado e cadastre as **categorias**, **classes** e a **diária de cada combinação** (Categoria classe).
 2. Cadastre os **veículos** com foto, placa, ano e a categoria/classe.
 3. Crie uma conta de cliente em `/cadastro/` e faça uma reserva pelo catálogo.
 
@@ -155,9 +108,6 @@ python manage.py test
 naipicar/
 ├── manage.py
 ├── requirements.txt
-├── setup.sh                   # instalação automática (Linux / macOS)
-├── setup.bat                  # instalação automática (Windows)
-├── .gitignore
 ├── naipicar/                  # configurações do projeto (settings, urls)
 ├── contas/                    # usuários e endereços: cadastro, login e validações
 │   ├── models.py
@@ -168,8 +118,7 @@ naipicar/
 │   ├── views.py
 │   ├── templates/locacao/
 │   └── management/commands/importar_carros.py
-├── marcas-carros.csv          # dados para importação
-├── modelos-carro.csv
+├── carros-brasil.csv          # marcas e modelos importados (pode ser editado)
 └── media/                     # fotos enviadas
 ```
 
@@ -205,18 +154,4 @@ Projeto desenvolvido por **Bruno**, **Nathan** e **Milan**, estudantes de Tecnol
 
 ## Licença
 
-Projeto acadêmico. Todos os direitos reservados aos autores.
-
-PASSO A PASSO PARA RODAR O DOCUEMENTO
-
-1- TEM PYTHON INSTALADO 
-2- INSTALAR A EXTENSÂO DO DJANGO 
-3- CRIAR A PASTA VENV (python -m venv venv) 
-4- ATIVAR VENV (venv\Scripts\activate) 
-5- INSTALAR ISSO DAQUI (python -m pip install Pillow)  python -m pip install django
-6- CRIAR O SEU USUARIO ADMIN (python manage.py createsuperseur) email e opcional, nome ele aparece o do dispositivo caso nao estaja aparecendo tem que colocar. 
-7- RODAR O SERVIDOR (python manage.py runserver) 
-8- CASO NO PAINEL ADMIN EM MARCAR E MODELOS NAO ESTEJA APARECENDO NADA RODAR ESSE CODIGO (python manage.py importar\_carros)
-
-TENTA DESSE JEITO SE NAO DER CERTO PODE SER QUE EU TENHA ESQUECIDO DE ALGUMA COISA MAIS DEIXEI ABAIXO UM PASSO A PASSpO QUE A IA FEZ, É QUE EU NAO SEI MUITO BEM SE ELE JA VAI PUXAR TODAS AS INFORMAÇÔES AUTOMATICO
-
+Projeto acadêmico. Defina aqui a licença do repositório, se houver.

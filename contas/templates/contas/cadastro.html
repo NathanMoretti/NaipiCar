@@ -1,0 +1,66 @@
+{% extends 'locacao/base.html' %}
+
+{% block titulo %}Criar Conta - NaipiCar{% endblock %}
+
+{% block conteudo %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="mb-1 text-primary">Crie sua conta</h2>
+                    <p class="text-muted mb-4">Cadastre-se para reservar seu carro e acompanhar suas viagens.</p>
+
+                    <form method="POST" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <h5 class="text-secondary">Dados pessoais</h5>
+                        <div class="row g-3 mb-4">
+                            {% include 'contas/_campo.html' with field=form.full_name col='col-12' %}
+                            {% include 'contas/_campo.html' with field=form.cpf %}
+                            {% include 'contas/_campo.html' with field=form.phone %}
+                            {% include 'contas/_campo.html' with field=form.email col='col-12' %}
+                        </div>
+
+                        <h5 class="text-secondary">Endereço</h5>
+                        <div class="row g-3 mb-4">
+                            {% include 'contas/_campo.html' with field=form.zip_code col='col-md-4' %}
+                            {% include 'contas/_campo.html' with field=form.street col='col-md-8' %}
+                            {% include 'contas/_campo.html' with field=form.number col='col-md-3' %}
+                            {% include 'contas/_campo.html' with field=form.complement col='col-md-9' %}
+                            {% include 'contas/_campo.html' with field=form.neighborhood col='col-md-4' %}
+                            {% include 'contas/_campo.html' with field=form.city col='col-md-5' %}
+                            {% include 'contas/_campo.html' with field=form.state col='col-md-3' %}
+                        </div>
+
+                        <h5 class="text-secondary">Acesso</h5>
+                        <div class="row g-3 mb-4">
+                            {% include 'contas/_campo.html' with field=form.password1 %}
+                            {% include 'contas/_campo.html' with field=form.password2 %}
+                        </div>
+
+                        <div class="form-check mb-3">
+                            {{ form.accept_terms }}
+                            <label class="form-check-label" for="{{ form.accept_terms.id_for_label }}">
+                                Li e concordo com os
+                                <a href="{% url 'termos' %}" target="_blank" rel="noopener">Termos de uso e Política de privacidade</a>.
+                            </label>
+                            {% for erro in form.accept_terms.errors %}<div class="text-danger small">{{ erro }}</div>{% endfor %}
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 btn-lg">Criar conta</button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <small class="text-muted">Já possui uma conta? <a href="{% url 'login' %}">Entrar</a></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

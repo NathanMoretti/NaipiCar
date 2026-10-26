@@ -1,6 +1,5 @@
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import UserCreationForm
 from django.shortcuts import get_object_or_404, redirect, render
 from .models import Reserva, Veiculo
 
@@ -73,15 +72,3 @@ def minhas_reservas(request):
       '-data_criacao'
   )
   return render(request, 'locacao/minhas_reservas.html', {'reservas': reservas})
-
-
-def cadastro(request):
-  # Gerencia o registro de novos usuários no sistema
-  if request.method == 'POST':
-    form = UserCreationForm(request.POST)
-    if form.is_valid():
-      form.save()
-      return redirect('login')
-  else:
-    form = UserCreationForm()
-  return render(request, 'locacao/cadastro.html', {'form': form})

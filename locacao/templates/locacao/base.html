@@ -21,9 +21,9 @@
                     
                     {% if user.is_authenticated %}
                         <li class="nav-item"><a class="nav-link" href="{% url 'minhas_reservas' %}">Minhas Reservas</a></li>
-                        <li class="nav-item text-white ms-3 me-2">Olá, <strong>{{ user.username }}</strong></li>
+                        <li class="nav-item text-white ms-3 me-2">Olá, <strong>{{ user.first_name }}</strong></li>
                         
-                        {% if user.is_staff or user.is_superuser %}
+                        {% if user.is_staff %}
                             <!-- Opção exclusiva para o Administrador (conforme o protótipo Dashboard) -->
                             <li class="nav-item"><a class="btn btn-warning btn-sm me-2" href="/admin/">Painel Admin</a></li>
                         {% endif %}
@@ -43,6 +43,15 @@
             </div>
         </div>
     </nav>
+
+    <!-- MENSAGENS (sucesso, erro...) -->
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} mb-2" role="alert">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     <!-- CONTEÚDO DINÂMICO DA PÁGINA -->
     <main class="flex-shrink-0 my-4">

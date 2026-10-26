@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from django.conf import settings
 from django.db import models
 
 
@@ -31,9 +31,6 @@ class ClasseCarro(models.Model):
   nome = models.CharField(
       max_length=20, unique=True
   )  # Ex: Classe A, Classe B, Classe C
-  fator_multiplicador = models.DecimalField(
-      max_digits=4, decimal_places=2, default=1.0
-  )
 
   def __str__(self):
     return self.nome
@@ -87,7 +84,7 @@ class Reserva(models.Model):
   ]
 
   cliente = models.ForeignKey(
-      User, on_delete=models.CASCADE, null=True, blank=True
+      settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True
   )
   nome_cliente = models.CharField(max_length=150, blank=True, null=True)
   email_cliente = models.EmailField(blank=True, null=True)
@@ -102,5 +99,5 @@ class Reserva(models.Model):
   data_criacao = models.DateTimeField(auto_now_add=True)
 
   def __str__(self):
-    cliente_nome = self.cliente.username if self.cliente else self.nome_cliente
+    cliente_nome = self.cliente.full_name if self.cliente else self.nome_cliente
     return f"Reserva #{self.id} - {cliente_nome} ({self.veiculo})"
