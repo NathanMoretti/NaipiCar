@@ -1,0 +1,77 @@
+{% extends 'locacao/base.html' %}
+
+{% block titulo %}{{ veiculo.modelo }} - Detalhes - NaipiCar{% endblock %}
+
+{% block conteudo %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="card-title fw-bold text-primary">{{ veiculo.modelo }}</h2>
+                    <h5 class="text-muted mb-4">Ano: {{ veiculo.ano }} | Categoria: {{ veiculo.categoria_classe.categoria.nome }}</h5>
+                    
+                    <hr>
+
+                    <div class="row my-4">
+                        <div class="col-md-6">
+                            <p><strong>Placa:</strong> {{ veiculo.placa|default:"Não informada" }}</p>
+                            <p><strong>Quilometragem:</strong> {{ veiculo.quilometragem }} km</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <p class="text-muted mb-0">Valor da Diária:</p>
+                            <h3 class="text-success fw-bold">R$ {{ veiculo.diaria }}</h3>
+                        </div>
+                    </div>
+
+                    <!-- Formulário de Reserva Online -->
+                    <div class="card mt-4 border-0 bg-light shadow-sm">
+                        <div class="card-body">
+                            <h4 class="mb-3 text-secondary">Fazer Reserva Online</h4>
+
+                            {% if sucesso %}
+                                <div class="alert alert-success" role="alert">{{ sucesso }}</div>
+                            {% endif %}
+                            {% if erro %}
+                                <div class="alert alert-danger" role="alert">{{ erro }}</div>
+                            {% endif %}
+
+                            {% if veiculo.disponivel %}
+                                <form method="POST">
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        <label class="form-label">Seu Nome:</label>
+                                        <input type="text" name="nome_cliente" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Seu E-mail:</label>
+                                        <input type="email" name="email_cliente" class="form-control" required>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Data de Retirada:</label>
+                                            <input type="date" name="data_retirada" class="form-control" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Data de Devolução:</label>
+                                            <input type="date" name="data_devolucao" class="form-control" required>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100 btn-lg">Confirmar Solicitação de Reserva</button>
+                                </form>
+                            {% else %}
+                                <div class="alert alert-danger text-center mb-0" role="alert">Este veículo está indisponível no momento.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-center">
+                        <a href="{% url 'index' %}" class="btn btn-outline-secondary">Voltar ao Catálogo</a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

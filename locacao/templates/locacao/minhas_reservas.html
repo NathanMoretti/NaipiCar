@@ -1,0 +1,49 @@
+{% extends 'locacao/base.html' %}
+
+{% block titulo %}Minhas Reservas - NaipiCar{% endblock %}
+
+{% block conteudo %}
+<div class="container my-5">
+    <h2 class="mb-4 text-primary fw-bold">Minhas Reservas</h2>
+    
+    <div class="row">
+        {% for reserva in reservas %}
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title fw-bold text-secondary mb-0">Reserva #{{ reserva.id }}</h5>
+                            <!-- Status da Reserva -->
+                            {% if reserva.status == 'Pendente' %}
+                                <span class="badge bg-warning text-dark">Pendente de Confirmação</span>
+                            {% elif reserva.status == 'Confirmada' %}
+                                <span class="badge bg-success">Confirmada</span>
+                            {% elif reserva.status == 'Concluída' %}
+                                <span class="badge bg-secondary">Concluída</span>
+                            {% else %}
+                                <span class="badge bg-danger">Cancelada</span>
+                            {% endif %}
+                        </div>
+
+                        <h6 class="text-primary mb-3">Veículo: {{ reserva.veiculo.modelo }} ({{ reserva.veiculo.ano }})</h6>
+                        
+                        <p class="card-text mb-1"><strong>Retirada:</strong> {{ reserva.data_retirada|date:"d/m/Y" }}</p>
+                        <p class="card-text mb-1"><strong>Devolução:</strong> {{ reserva.data_devolucao|date:"d/m/Y" }}</p>
+                        <p class="card-text mb-3"><strong>Valor Total:</strong> <span class="text-success fw-bold">R$ {{ reserva.valor_total }}</span></p>
+                    </div>
+                    <div class="card-footer bg-white text-muted small">
+                        Solicitada em: {{ reserva.data_criacao|date:"d/m/Y H:i" }}
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center py-4" role="alert">
+                    Você ainda não possui nenhuma reserva realizada. <br>
+                    <a href="{% url 'index' %}" class="btn btn-primary mt-3 btn-sm">Ver Catálogo de Veículos</a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

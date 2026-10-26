@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block titulo %}NaipiCar - Aluguel de Carros{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light d-flex flex-column min-vh-100">
+
+    <!-- CABEÇALHO PADRÃO (Baseado na prototipação) -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'index' %}">🚗 NaipiCar</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-center">
+                    <li class="nav-item"><a class="nav-link" href="{% url 'index' %}">Início</a></li>
+                    
+                    {% if user.is_authenticated %}
+                        <li class="nav-item"><a class="nav-link" href="{% url 'minhas_reservas' %}">Minhas Reservas</a></li>
+                        <li class="nav-item text-white ms-3 me-2">Olá, <strong>{{ user.username }}</strong></li>
+                        
+                        {% if user.is_staff or user.is_superuser %}
+                            <!-- Opção exclusiva para o Administrador (conforme o protótipo Dashboard) -->
+                            <li class="nav-item"><a class="btn btn-warning btn-sm me-2" href="/admin/">Painel Admin</a></li>
+                        {% endif %}
+                        
+                        <li class="nav-item">
+                            <form action="{% url 'logout' %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-light btn-sm">Sair</button>
+                            </form>
+                        </li>
+                    {% else %}
+                        <!-- Opções para visitantes não logados -->
+                        <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Entrar</a></li>
+                        <li class="nav-item ms-2"><a class="btn btn-primary btn-sm" href="{% url 'cadastro' %}">Criar Conta</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTEÚDO DINÂMICO DA PÁGINA -->
+    <main class="flex-shrink-0 my-4">
+        {% block conteudo %}
+        {% endblock %}
+    </main>
+
+    <!-- RODAPÉ PADRÃO -->
+    <footer class="text-center text-muted py-4 border-top bg-white mt-auto">
+        <div class="container">
+            <p class="mb-1"><strong>NaipiCar</strong> - Seu caminho começa em Foz do Iguaçu - PR</p>
+            <p class="mb-0">&copy; 2026 NaipiCar - Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+{% extends 'locacao/base.html' %}
+
+{% block titulo %}Catálogo - NaipiCar{% endblock %}
+
+{% block conteudo %}
+<header class="bg-primary text-white text-center py-5 mb-4 shadow">
+    <div class="container">
+        <h1 class="fw-light">Encontre o carro ideal para a sua viagem</h1>
+        <p class="lead">Consulte nossos veículos disponíveis e faça sua reserva online de forma simples e rápida.</p>
+    </div>
+</header>
+
+<div class="container mb-5">
+    <h2 class="mb-4 text-secondary">Catálogo de Veículos</h2>
+    
+    <div class="row">
+        {% for veiculo in veiculos %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <!-- Imagem do veículo -->
+                    {% if veiculo.imagem %}
+                        <img src="{{ veiculo.imagem.url }}" class="card-img-top" alt="{{ veiculo.modelo }}" style="width: 100%; height: 180px; object-fit: cover;">
+                    {% else %}
+                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 180px;">
+                            <span>Sem imagem</span>
+                        </div>
+                    {% endif %}
+
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold">{{ veiculo.modelo }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">Ano: {{ veiculo.ano }} | Categoria: {{ veiculo.categoria_classe.categoria.nome }}</h6>
+                        <p class="card-text mt-3">
+                            <strong>Placa:</strong> {{ veiculo.placa|default:"Não informada" }}<br>
+                            <strong class="text-success fs-5">R$ {{ veiculo.diaria }}</strong> <small class="text-muted">/ dia</small>
+                        </p>
+                    </div>
+                    <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if veiculo.disponivel %}
+                                <span class="badge bg-success">Disponível</span>
+                            {% else %}
+                                <span class="badge bg-danger">Indisponível</span>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'detalhe_veiculo' veiculo.id %}" class="btn btn-outline-primary btn-sm">Ver Detalhes</a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-warning text-center" role="alert">
+                    Nenhum veículo cadastrado no momento. Cadastre alguns carros pelo <a href="/admin/" class="alert-link">Painel Administrativo</a>.
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
