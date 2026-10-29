@@ -120,6 +120,11 @@
             <div class="nc-acoes">
                 {% if user.is_authenticated %}
                     <span>Olá, {{ user.first_name|default:"cliente" }}</span>
+                    {% if user.is_staff %}
+                        <a href="/admin/" class="nc-btn nc-btn-verde nc-btn-sm">
+                            <i class="bi bi-gear"></i> Painel admin
+                        </a>
+                    {% endif %}
                     <form method="post" action="{% url 'logout' %}" class="m-0">
                         {% csrf_token %}
                         <button type="submit" class="nc-btn nc-btn-contorno nc-btn-sm">
