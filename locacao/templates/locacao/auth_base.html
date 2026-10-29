@@ -1,0 +1,131 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titulo %}NaipiCar{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --verde: #0e5a47; --verde-escuro: #0a4536; --acento: #2dd4b0;
+            --texto: #17212b; --suave: #5b6672; --borda: #dfe4e9; --erro: #c0392b;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "Inter", system-ui, sans-serif; color: var(--texto); background: #fff; }
+        a { color: var(--verde); font-weight: 600; }
+        :focus-visible { outline: 3px solid #2f9e7f; outline-offset: 2px; }
+
+        .auth { display: flex; min-height: 100vh; }
+        .auth.invertido { flex-direction: row-reverse; }
+
+        /* Painel com a foto */
+        .auth-painel {
+            flex: 1.15; position: sticky; top: 0; height: 100vh; align-self: flex-start;
+            display: flex; align-items: flex-end; padding: 48px; color: #fff;
+            background: linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(4,40,32,.92) 100%),
+                        var(--foto) center / cover no-repeat, #1b6b57;
+        }
+        .auth-painel.topo {
+            align-items: flex-start;
+            background: linear-gradient(180deg, rgba(4,40,32,.92) 0%, rgba(0,0,0,0) 45%),
+                        var(--foto) center / cover no-repeat, #1b6b57;
+        }
+        .auth-painel-conteudo { display: flex; gap: 20px; align-items: flex-start; max-width: 620px; }
+        .auth-pin {
+            flex: none; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); font-size: 1.5rem;
+        }
+        .auth-painel h2 { margin: 0 0 12px; font-size: clamp(1.75rem, 3vw, 2.5rem); line-height: 1.15; font-weight: 700; }
+        .auth-painel h2 em { font-style: normal; color: var(--acento); }
+        .auth-painel p { margin: 0; font-size: 1.0625rem; opacity: .92; }
+
+        /* Lado do formulário */
+        .auth-lado { flex: 1; display: flex; justify-content: center; align-items: center; padding: 40px 24px; }
+        .auth-caixa { width: 100%; max-width: 440px; }
+        .auth-logo { display: block; margin: 0 auto 28px; }
+        .auth-logo img { height: 96px; width: auto; margin: 0 auto; }
+        .auth-caixa h1 { margin: 0; font-size: 1.875rem; font-weight: 700; }
+        .auth-sub { margin: 6px 0 28px; color: var(--suave); }
+
+        .auth-grade { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+        .c12 { grid-column: span 12; } .c8 { grid-column: span 8; } .c5 { grid-column: span 5; }
+        .c4 { grid-column: span 4; } .c3 { grid-column: span 3; }
+        .auth label { display: block; font-size: .875rem; font-weight: 600; margin-bottom: 6px; }
+        .auth-campo {
+            display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px;
+            border: 1px solid var(--borda); border-radius: 8px; background: #fafbfc; color: var(--suave);
+        }
+        .auth-campo:focus-within { border-color: var(--verde); background: #fff; }
+        .auth-campo.erro { border-color: var(--erro); }
+        .auth-campo input, .auth-campo select {
+            flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent;
+            font: inherit; font-size: .9375rem; color: var(--texto); padding: 0;
+        }
+        .auth-campo .olho { border: 0; background: transparent; color: var(--suave); cursor: pointer; padding: 0; font-size: 1.1rem; }
+        .auth-erro { color: var(--erro); font-size: .8125rem; margin-top: 4px; }
+        .auth-dica { font-size: .75rem; color: var(--suave); margin-top: 6px; }
+        .auth-alerta { padding: 12px 14px; border-radius: 8px; margin-bottom: 20px; font-size: .9rem; background: #fdecea; color: var(--erro); }
+        .auth-alerta.success { background: #e3f0ec; color: var(--verde-escuro); }
+        .auth-titulo-sec { margin: 24px 0 12px; font-size: .9375rem; font-weight: 700; }
+
+        .auth-botao {
+            width: 100%; height: 48px; margin-top: 24px; border: 0; border-radius: 8px; cursor: pointer;
+            background: var(--verde); color: #fff; font: inherit; font-weight: 700; font-size: 1rem;
+        }
+        .auth-botao:hover { background: var(--verde-escuro); }
+        .auth-ou { display: flex; align-items: center; gap: 16px; margin: 28px 0 20px; color: var(--suave); font-size: .8125rem; }
+        .auth-ou::before, .auth-ou::after { content: ""; flex: 1; height: 1px; background: var(--borda); }
+        .auth-rodape { text-align: center; color: var(--suave); font-size: .9375rem; }
+        .auth-rodape a { display: inline-block; }
+
+        @media (max-width: 900px) {
+            .auth-painel { display: none; }
+            .auth-logo img { height: 80px; }
+        }
+        @media (max-width: 520px) { .c8, .c5, .c4, .c3 { grid-column: span 12; } }
+    </style>
+</head>
+<body>
+    <div class="auth {% block layout %}{% endblock %}">
+        <aside class="auth-painel {% block painel_classe %}{% endblock %}" style="--foto: url('{% block foto %}{% endblock %}');">
+            <div class="auth-painel-conteudo">
+                <div class="auth-pin"><i class="bi bi-geo-alt"></i></div>
+                <div>{% block painel %}{% endblock %}</div>
+            </div>
+        </aside>
+
+        <main class="auth-lado">
+            <div class="auth-caixa">
+                <a href="{% url 'index' %}" class="auth-logo">
+                    <img src="{% static 'img/logo.png' %}" alt="NaipiCar - Seu caminho começa em Foz">
+                </a>
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="auth-alerta {{ message.tags }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+                {% block formulario %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Mostrar / ocultar senha
+        document.querySelectorAll(".olho").forEach(function (botao) {
+            botao.addEventListener("click", function () {
+                var campo = document.getElementById(botao.dataset.alvo);
+                var mostrar = campo.type === "password";
+                campo.type = mostrar ? "text" : "password";
+                botao.querySelector("i").className = mostrar ? "bi bi-eye-slash" : "bi bi-eye";
+                botao.setAttribute("aria-label", mostrar ? "Ocultar senha" : "Mostrar senha");
+            });
+        });
+    </script>
+</body>
+</html>

@@ -4,7 +4,8 @@ from contas import views as contas_views
 from . import views
 
 urlpatterns = [
-    path('', views.index, name='index'),
+    path("", views.index, name="index"),
+    path("veiculos/", views.veiculos, name="veiculos"),
     path(
         'veiculo/<int:veiculo_id>/',
         views.detalhe_veiculo,
@@ -14,5 +15,5 @@ urlpatterns = [
     path('cadastro/', contas_views.cadastro, name='cadastro'),
     path('termos/', contas_views.termos, name='termos'),
     path('login/', contas_views.NaipiLoginView.as_view(), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='index'), name='logout'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='veiculos'), name='logout'),
 ]

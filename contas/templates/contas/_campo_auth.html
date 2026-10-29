@@ -1,0 +1,13 @@
+<div class="{{ col|default:'c12' }}">
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    <div class="auth-campo{% if field.errors %} erro{% endif %}">
+        <i class="bi {{ icon }}"></i>
+        {{ field }}
+        {% if senha %}
+            <button type="button" class="olho" data-alvo="{{ field.id_for_label }}" aria-label="Mostrar senha">
+                <i class="bi bi-eye"></i>
+            </button>
+        {% endif %}
+    </div>
+    {% for erro in field.errors %}<div class="auth-erro">{{ erro }}</div>{% endfor %}
+</div>

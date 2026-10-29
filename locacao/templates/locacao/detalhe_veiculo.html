@@ -10,8 +10,45 @@
                 <div class="card-body p-4">
                     <h2 class="card-title fw-bold text-primary">{{ veiculo.modelo }}</h2>
                     <h5 class="text-muted mb-4">Ano: {{ veiculo.ano }} | Categoria: {{ veiculo.categoria_classe.categoria.nome }}</h5>
-                    
+                    <!-- Imagem do veículo -->
+                    <div class="ratio ratio-4x3 bg-light rounded-top">
+                        {% if veiculo.imagem %}
+                            <img src="{{ veiculo.imagem.url }}" alt="{{ veiculo.modelo }}"
+                                class="card-img-top" style="object-fit: contain; padding: 8px;">
+                        {% else %}
+                            <div class="bg-secondary text-white d-flex align-items-center justify-content-center">
+                                <span>Sem imagem</span>
+                            </div>
+                        {% endif %}
+                    </div>
                     <hr>
+
+                    <!-- Características do veículo -->
+                    <div class="row text-center g-3 my-3">
+                        <div class="col-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="fs-3">👥</div>
+                                <div class="fw-bold">{{ veiculo.modelo.assentos }}</div>
+                                <small class="text-muted">Lugares</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="fs-3">🧳</div>
+                                <div class="fw-bold">{{ veiculo.modelo.malas }}</div>
+                                <small class="text-muted">Mala{{ veiculo.modelo.malas|pluralize }}</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="fs-3">
+                                    {% if veiculo.motorizacao == "eletrico" %}⚡{% elif veiculo.motorizacao == "hibrido" %}🔋{% else %}⛽{% endif %}
+                                </div>
+                                <div class="fw-bold">{{ veiculo.get_motorizacao_display }}</div>
+                                <small class="text-muted">Motorização</small>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="row my-4">
                         <div class="col-md-6">
@@ -32,6 +69,7 @@
                             {% if sucesso %}
                                 <div class="alert alert-success" role="alert">{{ sucesso }}</div>
                             {% endif %}
+
                             {% if erro %}
                                 <div class="alert alert-danger" role="alert">{{ erro }}</div>
                             {% endif %}
@@ -68,7 +106,6 @@
                     <div class="mt-4 text-center">
                         <a href="{% url 'index' %}" class="btn btn-outline-secondary">Voltar ao Catálogo</a>
                     </div>
-
                 </div>
             </div>
         </div>

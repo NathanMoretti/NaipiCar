@@ -1,25 +1,38 @@
-{% extends 'locacao/base.html' %}
+{% extends 'locacao/auth_base.html' %}
+{% load static %}
 
 {% block titulo %}Entrar - NaipiCar{% endblock %}
 
-{% block conteudo %}
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-body p-4">
-                    <h2 class="text-center mb-4 text-primary">Entrar no NaipiCar</h2>
-                    <form method="POST">
-                        {% csrf_token %}
-                        {{ form.as_p }}
-                        <button type="submit" class="btn btn-primary w-100 mt-3">Entrar</button>
-                    </form>
-                    <div class="text-center mt-3">
-                        <small class="text-muted">Não tem uma conta? <a href="{% url 'cadastro' %}">Criar Conta</a></small>
-                    </div>
-                </div>
-            </div>
+{% block foto %}{% static 'img/auth-login.png' %}{% endblock %}
+
+{% block painel %}
+    <h2>Sua próxima viagem <em>começa aqui.</em></h2>
+    <p>Reserve, acompanhe e aproveite Foz com liberdade.</p>
+{% endblock %}
+
+{% block formulario %}
+    <h1>Bem-vindo de volta</h1>
+    <p class="auth-sub">Acesse sua conta para gerenciar suas reservas.</p>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+
+        {% if form.non_field_errors %}
+            <div class="auth-alerta">{{ form.non_field_errors|join:" " }}</div>
+        {% endif %}
+
+        <div class="auth-grade">
+            {% include 'contas/_campo_auth.html' with field=form.username icon='bi-envelope' %}
+            {% include 'contas/_campo_auth.html' with field=form.password icon='bi-lock' senha=True %}
         </div>
+
+        <button type="submit" class="auth-botao">Entrar</button>
+    </form>
+
+    <div class="auth-ou">ou</div>
+    <div class="auth-rodape">
+        Ainda não possui uma conta?<br>
+        <a href="/cadastro/">Criar conta</a>
     </div>
-</div>
 {% endblock %}

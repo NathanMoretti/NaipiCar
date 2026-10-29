@@ -1,0 +1,45 @@
+<div class="nc-busca-faixa">
+    <div class="nc-container">
+        <form class="nc-busca" method="get" action="{% url 'veiculos' %}">
+            <div>
+                <label for="retirada">Retirada</label>
+                <div class="nc-campo">
+                    <i class="bi bi-calendar3"></i>
+                    <input type="date" id="retirada" name="retirada" value="{{ filtro.retirada }}" min="{% now 'Y-m-d' %}" required>
+                </div>
+            </div>
+            <div>
+                <label for="devolucao">Devolução</label>
+                <div class="nc-campo">
+                    <i class="bi bi-calendar3"></i>
+                    <input type="date" id="devolucao" name="devolucao" value="{{ filtro.devolucao }}" min="{% now 'Y-m-d' %}" required>
+                </div>
+            </div>
+            <div>
+                <label for="categoria">Categoria</label>
+                <div class="nc-campo">
+                    <i class="bi bi-car-front"></i>
+                    <select id="categoria" name="categoria">
+                        <option value="">Todas as categorias</option>
+                        {% for cat in todas_categorias %}
+                            <option value="{{ cat.id }}" {% if filtro.categoria == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="nc-btn nc-btn-verde"><i class="bi bi-search"></i> Buscar veículos</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // A devolução não pode ser antes da retirada
+    (function () {
+        const retirada = document.getElementById("retirada");
+        const devolucao = document.getElementById("devolucao");
+        retirada.addEventListener("change", function () {
+            devolucao.min = retirada.value;
+            if (devolucao.value && devolucao.value < retirada.value) devolucao.value = retirada.value;
+        });
+    })();
+</script>

@@ -1,0 +1,55 @@
+{% extends 'locacao/base.html' %}
+
+{% block titulo %}Veículos - NaipiCar{% endblock %}
+
+{% block conteudo %}
+<section class="nc-faixa">
+    <div class="nc-container">
+        <h1>Veículos</h1>
+        <p>Informe o período e a categoria para ver os carros livres.</p>
+    </div>
+</section>
+
+{% include 'locacao/_busca.html' %}
+
+<section class="nc-secao" style="padding-top: 40px;">
+    <div class="nc-container">
+        <p class="text-muted mb-4">
+            {{ veiculos|length }} veículo{{ veiculos|length|pluralize }} encontrado{{ veiculos|length|pluralize }}
+            {% if filtro.retirada or filtro.categoria %}
+                · <a href="{% url 'veiculos' %}" style="color: var(--verde); font-weight: 600;">Limpar filtros</a>
+            {% endif %}
+        </p>
+
+        <div class="nc-grade-3">
+            {% for veiculo in veiculos %}
+                <article class="nc-cartao">
+                    <h3>{{ veiculo.modelo }}</h3>
+                    <p class="nc-desc">Ano {{ veiculo.ano }}{% if veiculo.categoria_classe %} · {{ veiculo.categoria_classe.categoria.nome }}{% endif %}</p>
+                    <div class="nc-specs">
+                        <span><i class="bi bi-person"></i>{{ veiculo.modelo.assentos }} lugares</span>
+                        <span><i class="bi bi-suitcase2"></i>{{ veiculo.modelo.malas }} mala{{ veiculo.modelo.malas|pluralize }}</span>
+                        <span><i class="bi bi-fuel-pump"></i>{{ veiculo.get_motorizacao_display }}</span>
+                    </div>
+                    <div class="nc-foto">
+                        {% if veiculo.imagem %}
+                            <img src="{{ veiculo.imagem.url }}" alt="{{ veiculo.modelo }}">
+                        {% else %}
+                            <div class="nc-sem-foto">Sem imagem</div>
+                        {% endif %}
+                    </div>
+                    <div class="nc-rodape-cartao">
+                        <div class="nc-preco">
+                            <small>{% if veiculo.disponivel %}Disponível{% else %}Indisponível{% endif %}</small>
+                            <strong>R$ {{ veiculo.diaria|floatformat:0 }}</strong> <span>/dia</span>
+                        </div>
+                        <a href="{% url 'detalhe_veiculo' veiculo.id %}" class="nc-btn nc-btn-contorno nc-btn-sm">Ver detalhes</a>
+                    </div>
+                </article>
+            {% empty %}
+                <div class="nc-vazio">Nenhum veículo encontrado para esse filtro. Tente outras datas ou categorias.</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

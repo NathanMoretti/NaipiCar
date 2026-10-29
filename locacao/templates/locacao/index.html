@@ -1,58 +1,100 @@
 {% extends 'locacao/base.html' %}
+{% load static %}
 
-{% block titulo %}Catálogo - NaipiCar{% endblock %}
+{% block titulo %}NaipiCar - Aluguel de carros em Foz do Iguaçu{% endblock %}
+
+{% block extra_head %}
+<style>
+    .nc-hero {
+        min-height: 552px; padding-bottom: 90px; color: #fff; display: flex; align-items: center;
+        background:
+            linear-gradient(90deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.25) 50%, rgba(0,0,0,0) 100%),
+            url("{% static 'img/hero.png' %}") center / cover no-repeat, #2b4a3f;
+    }
+    .nc-hero h1 { font-size: clamp(2.5rem, 5vw, 3.75rem); line-height: 1.1; font-weight: 700; margin: 0 0 24px; max-width: 620px; text-shadow: 0 2px 12px rgba(0,0,0,.35); }
+    .nc-hero p { font-size: 1.125rem; max-width: 600px; margin: 0; text-shadow: 0 1px 8px rgba(0,0,0,.45); }
+    .nc-grade-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .nc-vantagem { background: #fff; border: 1px solid var(--borda); border-radius: 12px; padding: 20px; display: flex; gap: 16px; align-items: flex-start; }
+    .nc-icone { flex: none; width: 44px; height: 44px; border-radius: 10px; background: var(--verde-claro); color: var(--verde); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+    .nc-vantagem h3 { margin: 0 0 4px; font-size: 1rem; }
+    .nc-vantagem p { margin: 0; font-size: .8125rem; color: var(--suave); }
+    .nc-passos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .nc-passo { display: flex; align-items: center; gap: 16px; }
+    .nc-circulo { flex: none; width: 52px; height: 52px; border-radius: 50%; border: 1.5px solid var(--verde); color: var(--verde); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+    .nc-passo h3 { margin: 0 0 2px; font-size: 1rem; }
+    .nc-passo p { margin: 0; font-size: .8125rem; color: var(--suave); }
+    @media (max-width: 992px) { .nc-passos { grid-template-columns: 1fr; } .nc-grade-4 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 640px) { .nc-grade-4 { grid-template-columns: 1fr; } .nc-hero { min-height: 460px; } }
+</style>
+{% endblock %}
 
 {% block conteudo %}
-<header class="bg-primary text-white text-center py-5 mb-4 shadow">
-    <div class="container">
-        <h1 class="fw-light">Encontre o carro ideal para a sua viagem</h1>
-        <p class="lead">Consulte nossos veículos disponíveis e faça sua reserva online de forma simples e rápida.</p>
+<section class="nc-hero">
+    <div class="nc-container">
+        <h1>Seu caminho começa em Foz.</h1>
+        <p>Reserve o carro ideal para explorar Foz do Iguaçu com praticidade e segurança.</p>
     </div>
-</header>
+</section>
 
-<div class="container mb-5">
-    <h2 class="mb-4 text-secondary">Catálogo de Veículos</h2>
-    
-    <div class="row">
-        {% for veiculo in veiculos %}
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <!-- Imagem do veículo -->
-                    {% if veiculo.imagem %}
-                        <img src="{{ veiculo.imagem.url }}" class="card-img-top" alt="{{ veiculo.modelo }}" style="width: 100%; height: 180px; object-fit: cover;">
-                    {% else %}
-                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 180px;">
-                            <span>Sem imagem</span>
-                        </div>
-                    {% endif %}
+{% include 'locacao/_busca.html' %}
 
-                    <div class="card-body">
-                        <h5 class="card-title fw-bold">{{ veiculo.modelo }}</h5>
-                        <h6 class="card-subtitle mb-2 text-muted">Ano: {{ veiculo.ano }} | Categoria: {{ veiculo.categoria_classe.categoria.nome }}</h6>
-                        <p class="card-text mt-3">
-                            <strong>Placa:</strong> {{ veiculo.placa|default:"Não informada" }}<br>
-                            <strong class="text-success fs-5">R$ {{ veiculo.diaria }}</strong> <small class="text-muted">/ dia</small>
-                        </p>
+<section class="nc-secao">
+    <div class="nc-container">
+        <h2>Encontre o carro ideal</h2>
+        <div class="nc-grade-3">
+            {% for c in categorias %}
+                <article class="nc-cartao">
+                    <h3>{{ c.nome }}</h3>
+                    <p class="nc-desc">{{ c.descricao|default:"Confira os veículos desta categoria." }}</p>
+                    <div class="nc-specs">
+                        <span><i class="bi bi-person"></i>{{ c.assentos }} lugares</span>
+                        <span><i class="bi bi-suitcase2"></i>{{ c.malas }} mala{{ c.malas|pluralize }}</span>
                     </div>
-                    <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center">
-                        <div>
-                            {% if veiculo.disponivel %}
-                                <span class="badge bg-success">Disponível</span>
-                            {% else %}
-                                <span class="badge bg-danger">Indisponível</span>
-                            {% endif %}
+                    <div class="nc-foto">
+                        {% if c.imagem %}
+                            <img src="{{ c.imagem.url }}" alt="{{ c.nome }}">
+                        {% else %}
+                            <div class="nc-sem-foto">Sem imagem</div>
+                        {% endif %}
+                    </div>
+                    <div class="nc-rodape-cartao">
+                        <div class="nc-preco">
+                            <small>A partir de</small>
+                            <strong>R$ {{ c.preco_minimo|floatformat:0 }}</strong> <span>/dia</span>
                         </div>
-                        <a href="{% url 'detalhe_veiculo' veiculo.id %}" class="btn btn-outline-primary btn-sm">Ver Detalhes</a>
+                        <a href="{% url 'veiculos' %}?categoria={{ c.id }}" class="nc-btn nc-btn-contorno nc-btn-sm">Ver detalhes</a>
                     </div>
+                </article>
+            {% empty %}
+                <div class="nc-vazio">
+                    Nenhum veículo disponível no momento.
+                    <a href="{% url 'veiculos' %}" style="color: var(--verde); font-weight: 600;">Ver todos os veículos</a>
                 </div>
-            </div>
-        {% empty %}
-            <div class="col-12">
-                <div class="alert alert-warning text-center" role="alert">
-                    Nenhum veículo cadastrado no momento. Cadastre alguns carros pelo <a href="/admin/" class="alert-link">Painel Administrativo</a>.
-                </div>
-            </div>
-        {% endfor %}
+            {% endfor %}
+        </div>
     </div>
-</div>
+</section>
+
+<section class="nc-secao">
+    <div class="nc-container">
+        <h2>Por que escolher a NaipiCar?</h2>
+        <div class="nc-grade-4">
+            <div class="nc-vantagem"><div class="nc-icone"><i class="bi bi-display"></i></div><div><h3>Reserva online</h3><p>Reserve seu carro de forma rápida, fácil e segura.</p></div></div>
+            <div class="nc-vantagem"><div class="nc-icone"><i class="bi bi-clock"></i></div><div><h3>Retirada rápida</h3><p>Processo ágil para você aproveitar mais sua viagem.</p></div></div>
+            <div class="nc-vantagem"><div class="nc-icone"><i class="bi bi-people"></i></div><div><h3>Atendimento local</h3><p>Equipe de Foz pronta para atender você.</p></div></div>
+            <div class="nc-vantagem"><div class="nc-icone"><i class="bi bi-compass"></i></div><div><h3>Mais liberdade</h3><p>Explore cada destino no seu ritmo e com conforto.</p></div></div>
+        </div>
+    </div>
+</section>
+
+<section class="nc-secao">
+    <div class="nc-container">
+        <h2>Como funciona</h2>
+        <div class="nc-passos">
+            <div class="nc-passo"><div class="nc-circulo"><i class="bi bi-car-front"></i></div><div><h3>1. Escolha o veículo</h3><p>Navegue pela nossa frota e selecione o modelo ideal.</p></div></div>
+            <div class="nc-passo"><div class="nc-circulo"><i class="bi bi-calendar-check"></i></div><div><h3>2. Selecione as datas</h3><p>Informe a data de retirada e devolução do veículo.</p></div></div>
+            <div class="nc-passo"><div class="nc-circulo"><i class="bi bi-shield-check"></i></div><div><h3>3. Confirme sua reserva</h3><p>Insira os detalhes e garanta sua reserva com segurança.</p></div></div>
+        </div>
+    </div>
+</section>
 {% endblock %}

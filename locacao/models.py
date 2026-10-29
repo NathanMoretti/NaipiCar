@@ -10,11 +10,16 @@ class Marca(models.Model):
 
 
 class ModeloCarro(models.Model):
-  marca = models.ForeignKey(Marca, on_delete=models.CASCADE)
-  nome = models.CharField(max_length=100)
+    marca = models.ForeignKey(Marca, on_delete=models.CASCADE)
+    nome = models.CharField(max_length=100)
+    assentos = models.PositiveSmallIntegerField(default=5)
+    malas = models.PositiveSmallIntegerField(
+        default=2,
+        help_text="Quantidade de malas médias que cabem no porta-malas",
+    )
 
-  def __str__(self):
-    return f"{self.marca.nome} {self.nome}"
+    def __str__(self):
+        return f"{self.marca.nome} {self.nome}"
 
 
 class Categoria(models.Model):
@@ -52,13 +57,23 @@ class CategoriaClasse(models.Model):
 
 
 class Veiculo(models.Model):
+  class Motorizacao(models.TextChoices):
+        COMBUSTAO = "combustao", "Combustão"
+        HIBRIDO = "hibrido", "Híbrido"
+        ELETRICO = "eletrico", "Elétrico"
+
   modelo = models.ForeignKey(ModeloCarro, on_delete=models.PROTECT)
-  # O veículo aponta para a combinação Categoria x Classe para herdar a diária
   categoria_classe = models.ForeignKey(
       CategoriaClasse, on_delete=models.PROTECT, null=True, blank=True
   )
   ano = models.IntegerField()
+  motorizacao = models.CharField(
+      max_length=20,
+      choices=Motorizacao.choices,
+      default=Motorizacao.COMBUSTAO,
+  )
   disponivel = models.BooleanField(default=True)
+
   placa = models.CharField(max_length=10, unique=True, null=True, blank=True)
   quilometragem = models.IntegerField(default=0)
   imagem = models.ImageField(upload_to="veiculos/", blank=True, null=True)
