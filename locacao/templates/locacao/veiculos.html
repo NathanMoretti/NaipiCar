@@ -1,6 +1,41 @@
 {% extends 'locacao/base.html' %}
+{% load l10n %}
 
 {% block titulo %}Veículos - NaipiCar{% endblock %}
+
+{% block extra_head %}
+<style>
+    .nc-modal {
+        border: 0; padding: 0; border-radius: 16px; width: min(680px, calc(100% - 32px)); max-height: 92vh;
+        color: var(--texto); box-shadow: 0 20px 60px rgba(0, 0, 0, .3); overflow: hidden;
+    }
+    .nc-modal[open] { display: flex; flex-direction: column; }
+    .nc-modal::backdrop { background: rgba(10, 30, 25, .55); }
+    body.nc-modal-aberto { overflow: hidden; }
+    .nc-modal [hidden] { display: none !important; }
+    .nc-modal form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+    .nc-modal-topo { display: flex; justify-content: space-between; align-items: center; padding: 20px 32px; border-bottom: 1px solid var(--borda); }
+    .nc-modal-topo h2 { margin: 0; font-size: 1.375rem; font-weight: 700; }
+    .nc-modal-x { border: 0; background: #eef1f3; width: 32px; height: 32px; border-radius: 50%; color: var(--suave); cursor: pointer; font-size: 1rem; }
+    .nc-modal-x:hover { background: #e1e6ea; color: var(--texto); }
+    .nc-modal-corpo { padding: 24px 32px; overflow-y: auto; }
+    .nc-modal-foto { height: 210px; background: #f1f3f5; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 20px; }
+    .nc-modal-foto img { width: 100%; height: 100%; object-fit: contain; }
+    .nc-info { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; margin: 0 0 20px; }
+    .nc-info dt { font-size: .75rem; font-weight: 600; color: var(--suave); margin-bottom: 4px; }
+    .nc-info dd { margin: 0; padding: 10px 14px; border: 1px solid var(--borda); border-radius: 8px; background: #fafbfc; font-size: .9375rem; }
+    .nc-info .destaque { color: var(--verde-escuro); font-weight: 700; }
+    .nc-reservar-titulo { font-size: .9375rem; font-weight: 700; margin: 8px 0 12px; }
+    .nc-reservando { display: flex; gap: 10px; align-items: center; background: var(--verde-claro); color: var(--verde-escuro); border-radius: 8px; padding: 10px 14px; font-size: .875rem; margin-bottom: 14px; }
+    .nc-datas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; }
+    .nc-datas label { display: block; font-size: .75rem; font-weight: 600; color: var(--suave); margin-bottom: 4px; }
+    .nc-datas input { width: 100%; height: 44px; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; font: inherit; }
+    .nc-total { margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: #f3f5f7; font-size: .9375rem; min-height: 46px; }
+    .nc-aviso { padding: 14px; border-radius: 8px; background: #fff3c4; color: #7a5d00; font-size: .9rem; }
+    .nc-modal-rodape { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 32px; border-top: 1px solid var(--borda); background: #fff; }
+    @media (max-width: 560px) { .nc-info, .nc-datas { grid-template-columns: 1fr; } .nc-modal-topo, .nc-modal-corpo, .nc-modal-rodape { padding-left: 20px; padding-right: 20px; } }
+</style>
+{% endblock %}
 
 {% block conteudo %}
 <section class="nc-faixa">
@@ -23,7 +58,17 @@
 
         <div class="nc-grade-3">
             {% for veiculo in veiculos %}
-                <article class="nc-cartao">
+                <article class="nc-cartao"
+                    data-modelo="{{ veiculo.modelo }}"
+                    data-categoria="{{ veiculo.categoria_classe.categoria.nome|default:'Sem categoria' }}"
+                    data-ano="{{ veiculo.ano }}"
+                    data-assentos="{{ veiculo.modelo.assentos }} lugares"
+                    data-malas="{{ veiculo.modelo.malas }} mala{{ veiculo.modelo.malas|pluralize }}"
+                    data-motor="{{ veiculo.get_motorizacao_display }}"
+                    data-diaria="{{ veiculo.diaria|unlocalize }}"
+                    data-img="{% if veiculo.imagem %}{{ veiculo.imagem.url }}{% endif %}"
+                    data-disponivel="{% if veiculo.disponivel %}1{% endif %}"
+                    data-reservar-url="{% url 'reservar_veiculo' veiculo.id %}">
                     <h3>{{ veiculo.modelo }}</h3>
                     <p class="nc-desc">Ano {{ veiculo.ano }}{% if veiculo.categoria_classe %} · {{ veiculo.categoria_classe.categoria.nome }}{% endif %}</p>
                     <div class="nc-specs">
@@ -43,7 +88,7 @@
                             <small>{% if veiculo.disponivel %}Disponível{% else %}Indisponível{% endif %}</small>
                             <strong>R$ {{ veiculo.diaria|floatformat:0 }}</strong> <span>/dia</span>
                         </div>
-                        <a href="{% url 'detalhe_veiculo' veiculo.id %}" class="nc-btn nc-btn-contorno nc-btn-sm">Ver detalhes</a>
+                        <button type="button" class="nc-btn nc-btn-contorno nc-btn-sm js-detalhes">Ver detalhes</button>
                     </div>
                 </article>
             {% empty %}
@@ -52,4 +97,148 @@
         </div>
     </div>
 </section>
+
+<!-- Pop-up de detalhes e reserva -->
+<dialog id="modal-veiculo" class="nc-modal" aria-labelledby="m-titulo">
+    <div class="nc-modal-topo">
+        <h2 id="m-titulo">Detalhes do Veículo</h2>
+        <button type="button" class="nc-modal-x" id="m-fechar" aria-label="Fechar"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    {% if user.is_authenticated %}
+    <form method="post" id="m-form">
+        {% csrf_token %}
+        <input type="hidden" name="voltar" value="{{ request.get_full_path }}">
+    {% else %}
+    <div style="display: flex; flex-direction: column; min-height: 0; flex: 1;">
+    {% endif %}
+
+        <div class="nc-modal-corpo">
+            <div class="nc-modal-foto">
+                <img id="m-img" alt="" hidden>
+                <span id="m-sem-foto" class="text-muted">Sem imagem</span>
+            </div>
+
+            <dl class="nc-info">
+                <div><dt>Veículo</dt><dd id="m-modelo"></dd></div>
+                <div><dt>Categoria</dt><dd id="m-categoria"></dd></div>
+                <div><dt>Ano</dt><dd id="m-ano"></dd></div>
+                <div><dt>Motorização</dt><dd id="m-motor"></dd></div>
+                <div><dt>Assentos</dt><dd id="m-assentos"></dd></div>
+                <div><dt>Malas</dt><dd id="m-malas"></dd></div>
+                <div><dt>Diária</dt><dd class="destaque" id="m-diaria"></dd></div>
+                <div><dt>Situação</dt><dd id="m-situacao"></dd></div>
+            </dl>
+
+            <div id="m-bloco-reserva">
+                <div class="nc-reservar-titulo">Fazer reserva</div>
+                {% if user.is_authenticated %}
+                    <div class="nc-reservando">
+                        <i class="bi bi-person-check"></i>
+                        <span>Reservando como <strong>{{ user.full_name|default:user.first_name }}</strong> ({{ user.email }})</span>
+                    </div>
+                    <div class="nc-datas">
+                        <div>
+                            <label for="m-retirada">Data de retirada</label>
+                            <input type="date" id="m-retirada" name="data_retirada" value="{{ filtro.retirada }}" min="{% now 'Y-m-d' %}" required>
+                        </div>
+                        <div>
+                            <label for="m-devolucao">Data de devolução</label>
+                            <input type="date" id="m-devolucao" name="data_devolucao" value="{{ filtro.devolucao }}" min="{% now 'Y-m-d' %}" required>
+                        </div>
+                    </div>
+                    <div class="nc-total" id="m-total" aria-live="polite">Escolha as datas para ver o valor total.</div>
+                {% else %}
+                    <div class="nc-aviso"><i class="bi bi-info-circle"></i> Para reservar, entre na sua conta ou crie uma. Leva menos de um minuto.</div>
+                {% endif %}
+            </div>
+            <div class="nc-aviso" id="m-indisponivel" hidden>Este veículo está indisponível no momento.</div>
+        </div>
+
+        <div class="nc-modal-rodape">
+            <button type="button" class="nc-btn nc-btn-contorno" id="m-cancelar">Cancelar</button>
+            {% if user.is_authenticated %}
+                <button type="submit" class="nc-btn nc-btn-verde" id="m-enviar">Confirmar reserva</button>
+            {% else %}
+                <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}" class="nc-btn nc-btn-verde" id="m-entrar">Entrar para reservar</a>
+            {% endif %}
+        </div>
+
+    {% if user.is_authenticated %}
+    </form>
+    {% else %}
+    </div>
+    {% endif %}
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var modal = document.getElementById("modal-veiculo");
+    var form = document.getElementById("m-form");
+    var diaria = 0;
+
+    function el(id) { return document.getElementById(id); }
+    function reais(n) { return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+
+    function atualizarTotal() {
+        var r = el("m-retirada"), d = el("m-devolucao"), total = el("m-total");
+        if (!r || !r.value || !d || !d.value) { if (total) total.textContent = "Escolha as datas para ver o valor total."; return; }
+        var dias = Math.round((new Date(d.value) - new Date(r.value)) / 86400000);
+        if (dias <= 0) { total.textContent = "A devolução deve ser depois da retirada."; return; }
+        total.innerHTML = dias + " diária" + (dias > 1 ? "s" : "") + " × " + reais(diaria) + " = <strong>" + reais(dias * diaria) + "</strong>";
+    }
+
+    function abrir(card) {
+        var d = card.dataset;
+        diaria = parseFloat(d.diaria) || 0;
+        el("m-titulo").textContent = d.modelo;
+        el("m-modelo").textContent = d.modelo;
+        el("m-categoria").textContent = d.categoria;
+        el("m-ano").textContent = d.ano;
+        el("m-motor").textContent = d.motor;
+        el("m-assentos").textContent = d.assentos;
+        el("m-malas").textContent = d.malas;
+        el("m-diaria").textContent = reais(diaria);
+
+        var disponivel = !!d.disponivel;
+        el("m-situacao").textContent = disponivel ? "Disponível" : "Indisponível";
+        el("m-bloco-reserva").hidden = !disponivel;
+        el("m-indisponivel").hidden = disponivel;
+        var enviar = el("m-enviar"), entrar = el("m-entrar");
+        if (enviar) enviar.hidden = !disponivel;
+        if (entrar) entrar.hidden = !disponivel;
+
+        var img = el("m-img");
+        if (d.img) { img.src = d.img; img.alt = d.modelo; img.hidden = false; el("m-sem-foto").hidden = true; }
+        else { img.hidden = true; el("m-sem-foto").hidden = false; }
+
+        if (form) { form.action = d.reservarUrl; atualizarTotal(); }
+        document.body.classList.add("nc-modal-aberto");
+        modal.showModal();
+    }
+
+    function fechar() { modal.close(); }
+
+    document.querySelectorAll(".js-detalhes").forEach(function (botao) {
+        botao.addEventListener("click", function () { abrir(botao.closest("article")); });
+    });
+    el("m-fechar").addEventListener("click", fechar);
+    el("m-cancelar").addEventListener("click", fechar);
+    // clicar fora da caixa (no fundo escuro) também fecha
+    modal.addEventListener("click", function (e) { if (e.target === modal) fechar(); });
+    modal.addEventListener("close", function () { document.body.classList.remove("nc-modal-aberto"); });
+
+    if (form) {
+        var r = el("m-retirada"), dv = el("m-devolucao");
+        r.addEventListener("change", function () {
+            dv.min = r.value;
+            if (dv.value && dv.value < r.value) dv.value = r.value;
+            atualizarTotal();
+        });
+        dv.addEventListener("change", atualizarTotal);
+    }
+})();
+</script>
 {% endblock %}

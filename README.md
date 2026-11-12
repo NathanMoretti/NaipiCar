@@ -62,7 +62,7 @@ venv\Scripts\activate          # Windows
 # source venv/bin/activate     # Linux / macOS
 
 # 3. Instalar as dependências
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.txt #Django>=6.1,<6.2
 
 # 4. Criar o banco de dados
 python manage.py migrate

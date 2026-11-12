@@ -2,48 +2,275 @@
 
 {% block titulo %}Minhas Reservas - NaipiCar{% endblock %}
 
-{% block conteudo %}
-<div class="container my-5">
-    <h2 class="mb-4 text-primary fw-bold">Minhas Reservas</h2>
-    
-    <div class="row">
-        {% for reserva in reservas %}
-            <div class="col-md-6 mb-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="card-title fw-bold text-secondary mb-0">Reserva #{{ reserva.id }}</h5>
-                            <!-- Status da Reserva -->
-                            {% if reserva.status == 'Pendente' %}
-                                <span class="badge bg-warning text-dark">Pendente de Confirmação</span>
-                            {% elif reserva.status == 'Confirmada' %}
-                                <span class="badge bg-success">Confirmada</span>
-                            {% elif reserva.status == 'Concluída' %}
-                                <span class="badge bg-secondary">Concluída</span>
-                            {% else %}
-                                <span class="badge bg-danger">Cancelada</span>
-                            {% endif %}
-                        </div>
+{% block extra_head %}
+<style>
+    .nc-res { padding-top: 40px; }
+    .nc-res h1 { font-size: 2.25rem; font-weight: 700; margin: 0 0 20px; }
+    .nc-abas { display: flex; gap: 28px; border-bottom: 1px solid var(--borda); margin-bottom: 24px; }
+    .nc-abas a { padding: 8px 0; margin-bottom: -1px; color: var(--suave); text-decoration: none; font-weight: 600; border-bottom: 2px solid transparent; }
+    .nc-abas a.ativa { color: var(--verde); border-bottom-color: var(--verde); }
 
-                        <h6 class="text-primary mb-3">Veículo: {{ reserva.veiculo.modelo }} ({{ reserva.veiculo.ano }})</h6>
-                        
-                        <p class="card-text mb-1"><strong>Retirada:</strong> {{ reserva.data_retirada|date:"d/m/Y" }}</p>
-                        <p class="card-text mb-1"><strong>Devolução:</strong> {{ reserva.data_devolucao|date:"d/m/Y" }}</p>
-                        <p class="card-text mb-3"><strong>Valor Total:</strong> <span class="text-success fw-bold">R$ {{ reserva.valor_total }}</span></p>
-                    </div>
-                    <div class="card-footer bg-white text-muted small">
-                        Solicitada em: {{ reserva.data_criacao|date:"d/m/Y H:i" }}
-                    </div>
+    .nc-res-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
+    .nc-res-layout.aberto { grid-template-columns: minmax(0, 1fr) 400px; }
+    .nc-res-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; }
+
+    .nc-res-card {
+        background: #fff; border: 1px solid var(--borda); border-radius: 16px; padding: 24px; cursor: pointer;
+        transition: box-shadow .15s, border-color .15s;
+    }
+    .nc-res-card:hover { box-shadow: 0 6px 20px rgba(15, 40, 35, .08); }
+    .nc-res-card.sel { border-color: var(--verde); box-shadow: 0 0 0 2px var(--verde-claro); }
+    .nc-res-foto { height: 110px; background: #f1f3f5; display: flex; align-items: center; justify-content: center; border-radius: 4px; overflow: hidden; }
+    .nc-res-foto img { width: 100%; height: 100%; object-fit: contain; }
+    .nc-res-card h3 { margin: 22px 0 2px; font-size: 1.0625rem; font-weight: 700; }
+    .nc-res-card .meta { color: var(--suave); font-size: .75rem; margin: 0 0 6px; }
+    .nc-res-card .periodo { font-size: .8125rem; margin: 0 0 14px; }
+    .nc-res-total { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
+    .nc-res-total small { display: block; font-size: .625rem; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); }
+    .nc-res-total strong { font-size: 1.125rem; }
+
+    .nc-badge { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: .75rem; font-weight: 600; }
+    .nc-badge.confirmada { background: #e3f0ec; color: var(--verde); }
+    .nc-badge.pendente { background: #fff3c4; color: #7a5d00; }
+    .nc-badge.concluida { background: #eef0f2; color: var(--suave); }
+    .nc-badge.cancelada { background: #f7b9b9; color: #8c1f1f; }
+
+    .nc-paginacao { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 28px; color: var(--suave); font-size: .875rem; }
+    .nc-paginacao .paginas { display: flex; gap: 8px; }
+    .nc-paginacao .paginas a {
+        min-width: 32px; height: 32px; padding: 0 8px; display: flex; align-items: center; justify-content: center;
+        border: 1px solid var(--borda); border-radius: 6px; background: #fff; color: var(--texto); text-decoration: none;
+    }
+    .nc-paginacao .paginas a.atual { background: var(--verde); border-color: var(--verde); color: #fff; }
+
+    /* Painel lateral */
+    .nc-painel { position: sticky; top: 24px; background: #fff; border: 1px solid var(--borda); border-radius: 16px; padding: 24px; }
+    .nc-painel[hidden] { display: none; }
+    .nc-painel-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .nc-painel-topo h2 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+    .nc-fechar { border: 0; background: transparent; font-size: 1.5rem; line-height: 1; color: var(--suave); cursor: pointer; border-radius: 8px; padding: 4px 8px; }
+    .nc-fechar:hover { background: #f1f3f5; color: var(--texto); }
+    .nc-painel-aba { display: inline-block; font-size: .8125rem; font-weight: 600; color: var(--verde); padding-bottom: 6px; border-bottom: 2px solid var(--verde); }
+    .nc-painel-aba-linha { border-bottom: 1px solid var(--borda); margin-bottom: 8px; }
+    .nc-sec { display: grid; grid-template-columns: 20px 1fr auto; column-gap: 10px; padding: 14px 0; }
+    .nc-sec > i { color: var(--suave); margin-top: 1px; }
+    .nc-sec .rotulo { font-size: .6875rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--suave); margin-bottom: 4px; }
+    .nc-sec strong { display: block; font-size: .9375rem; }
+    .nc-sec small { color: var(--suave); font-size: .75rem; }
+    .nc-sec .nc-painel-img { width: 56px; height: 36px; object-fit: contain; border-radius: 4px; background: #f1f3f5; }
+    .nc-sec .valor { font-size: 1.375rem; }
+    .nc-dias { display: inline-block; margin-top: 4px; padding: 2px 10px; border-radius: 6px; background: #e0efff; color: #1d5fb3; font-size: .6875rem; font-weight: 600; }
+    .nc-cancelar { margin-top: 12px; }
+    .nc-cancelar button {
+        width: 100%; height: 44px; border: 1.5px solid #e5484d; border-radius: 8px; background: #fff; color: #e5484d;
+        font: inherit; font-weight: 700; cursor: pointer;
+    }
+    .nc-cancelar button:hover { background: #fdecec; }
+    .nc-fundo { display: none; }
+
+    .nc-vazio-res { background: #fff; border: 1px dashed var(--borda); border-radius: 16px; padding: 40px; text-align: center; color: var(--suave); }
+
+    @media (max-width: 992px) {
+        .nc-res-layout.aberto { grid-template-columns: minmax(0, 1fr); }
+        .nc-painel { position: fixed; z-index: 50; top: 0; right: 0; bottom: 0; width: min(420px, 100%); border-radius: 16px 0 0 16px; overflow-y: auto; box-shadow: -8px 0 30px rgba(0,0,0,.18); }
+        .nc-fundo:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.4); }
+    }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="nc-container nc-res">
+    <h1>Minhas Reservas</h1>
+
+    <nav class="nc-abas" aria-label="Filtrar reservas">
+        <a href="?aba=todas" class="{% if aba == 'todas' %}ativa{% endif %}">Todas</a>
+        <a href="?aba=atuais" class="{% if aba == 'atuais' %}ativa{% endif %}">Atuais</a>
+        <a href="?aba=historico" class="{% if aba == 'historico' %}ativa{% endif %}">Histórico</a>
+    </nav>
+
+    <div class="nc-res-layout" id="layout">
+        <section>
+            {% if reservas %}
+                <div class="nc-res-grade">
+                    {% for r in reservas %}
+                        <article class="nc-res-card" tabindex="0" role="button" aria-label="Ver detalhes da reserva RES-{{ r.id|stringformat:'04d' }}"
+                            data-codigo="RES-{{ r.id|stringformat:'04d' }}"
+                            data-veiculo="{{ r.veiculo.modelo }}"
+                            data-placa="{{ r.veiculo.placa|default:'N/D' }}"
+                            data-categoria="{{ r.veiculo.categoria_classe.categoria.nome|default:'' }}"
+                            data-img="{% if r.veiculo.imagem %}{{ r.veiculo.imagem.url }}{% endif %}"
+                            data-retirada="{{ r.data_retirada|date:'d/m/Y' }}"
+                            data-devolucao="{{ r.data_devolucao|date:'d/m/Y' }}"
+                            data-dias="{{ r.dias }} diária{{ r.dias|pluralize }}"
+                            data-total="R$ {{ r.valor_total|floatformat:2 }}"
+                            data-diaria="R$ {{ r.diaria_calculada|floatformat:2 }} por diária"
+                            data-status-rotulo="{{ r.rotulo }}"
+                            data-status-classe="{{ r.classe }}"
+                            data-cancelavel="{% if r.cancelavel %}1{% endif %}"
+                            data-cancelar-url="{% url 'cancelar_reserva' r.id %}">
+                            <div class="nc-res-foto">
+                                {% if r.veiculo.imagem %}
+                                    <img src="{{ r.veiculo.imagem.url }}" alt="">
+                                {% else %}
+                                    <i class="bi bi-car-front" style="font-size: 2rem; color: var(--suave);"></i>
+                                {% endif %}
+                            </div>
+                            <h3>{{ r.veiculo.modelo }}</h3>
+                            <p class="meta">Placa: {{ r.veiculo.placa|default:"N/D" }}{% if r.veiculo.categoria_classe %} · {{ r.veiculo.categoria_classe.categoria.nome }}{% endif %}</p>
+                            <p class="periodo"><strong>Período:</strong> {{ r.data_retirada|date:"d/m/Y" }} ({{ r.dias }} diária{{ r.dias|pluralize }})</p>
+                            <div class="nc-res-total">
+                                <div><small>Valor total</small><strong>R$ {{ r.valor_total|floatformat:2 }}</strong></div>
+                                <span class="nc-badge {{ r.classe }}">{{ r.rotulo }}</span>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+
+                <div class="nc-paginacao">
+                    <span>Mostrando <strong>{{ pagina.start_index }}</strong> a <strong>{{ pagina.end_index }}</strong> de {{ pagina.paginator.count }} reserva{{ pagina.paginator.count|pluralize }}</span>
+                    {% if pagina.paginator.num_pages > 1 %}
+                        <div class="paginas">
+                            {% if pagina.has_previous %}<a href="?aba={{ aba }}&page={{ pagina.previous_page_number }}" aria-label="Página anterior"><i class="bi bi-chevron-left"></i></a>{% endif %}
+                            {% for n in pagina.paginator.page_range %}
+                                <a href="?aba={{ aba }}&page={{ n }}" class="{% if n == pagina.number %}atual{% endif %}">{{ n }}</a>
+                            {% endfor %}
+                            {% if pagina.has_next %}<a href="?aba={{ aba }}&page={{ pagina.next_page_number }}" aria-label="Próxima página"><i class="bi bi-chevron-right"></i></a>{% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="nc-vazio-res">
+                    Você ainda não tem reservas nesta lista.
+                    <a href="{% url 'veiculos' %}" style="color: var(--verde); font-weight: 600;">Ver veículos</a>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Painel lateral: abre ao clicar numa reserva -->
+        <aside class="nc-painel" id="painel" aria-label="Detalhes da reserva" hidden>
+            <div class="nc-painel-topo">
+                <h2 id="p-codigo"></h2>
+                <button type="button" class="nc-fechar" id="p-fechar" aria-label="Fechar detalhes">&times;</button>
+            </div>
+            <div class="nc-painel-aba-linha"><span class="nc-painel-aba">Detalhes</span></div>
+
+            <div class="nc-sec">
+                <i class="bi bi-person"></i>
+                <div>
+                    <div class="rotulo">Seus dados</div>
+                    <strong>{{ user.full_name|default:user.first_name }}</strong>
+                    <small>CPF: {{ user.cpf|slice:":3" }}.***.***-**</small>
                 </div>
             </div>
-        {% empty %}
-            <div class="col-12">
-                <div class="alert alert-info text-center py-4" role="alert">
-                    Você ainda não possui nenhuma reserva realizada. <br>
-                    <a href="{% url 'index' %}" class="btn btn-primary mt-3 btn-sm">Ver Catálogo de Veículos</a>
+            <div class="nc-sec">
+                <i class="bi bi-car-front"></i>
+                <div>
+                    <div class="rotulo">Veículo</div>
+                    <strong id="p-veiculo"></strong>
+                    <small>Placa: <span id="p-placa"></span><span id="p-categoria"></span></small>
+                </div>
+                <img id="p-img" class="nc-painel-img" alt="" hidden>
+            </div>
+            <div class="nc-sec">
+                <i class="bi bi-calendar3"></i>
+                <div>
+                    <div class="rotulo">Período de reserva</div>
+                    <strong>Retirada: <span id="p-retirada" style="font-weight: 400;"></span></strong>
+                    <strong>Devolução: <span id="p-devolucao" style="font-weight: 400;"></span></strong>
+                    <span class="nc-dias" id="p-dias"></span>
                 </div>
             </div>
-        {% endfor %}
+            <div class="nc-sec">
+                <i class="bi bi-currency-dollar"></i>
+                <div>
+                    <div class="rotulo">Valor total</div>
+                    <strong class="valor" id="p-total"></strong>
+                    <small id="p-diaria"></small>
+                </div>
+            </div>
+            <div class="nc-sec">
+                <i class="bi bi-check-circle"></i>
+                <div>
+                    <div class="rotulo">Situação atual</div>
+                    <span id="p-status" class="nc-badge"></span>
+                </div>
+            </div>
+
+            <form method="post" class="nc-cancelar" id="p-cancelar" hidden>
+                {% csrf_token %}
+                <button type="submit">Solicitar Cancelamento</button>
+            </form>
+        </aside>
     </div>
 </div>
+<div class="nc-fundo" id="fundo" hidden></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var layout = document.getElementById("layout");
+    var painel = document.getElementById("painel");
+    var fundo = document.getElementById("fundo");
+    var cards = document.querySelectorAll(".nc-res-card");
+    var ativo = null;
+
+    function el(id) { return document.getElementById(id); }
+
+    function abrir(card) {
+        var d = card.dataset;
+        el("p-codigo").textContent = d.codigo;
+        el("p-veiculo").textContent = d.veiculo;
+        el("p-placa").textContent = d.placa;
+        el("p-categoria").textContent = d.categoria ? " · " + d.categoria : "";
+        el("p-retirada").textContent = d.retirada;
+        el("p-devolucao").textContent = d.devolucao;
+        el("p-dias").textContent = d.dias;
+        el("p-total").textContent = d.total;
+        el("p-diaria").textContent = d.diaria;
+
+        var status = el("p-status");
+        status.textContent = d.statusRotulo;
+        status.className = "nc-badge " + d.statusClasse;
+
+        var img = el("p-img");
+        if (d.img) { img.src = d.img; img.hidden = false; } else { img.hidden = true; }
+
+        var form = el("p-cancelar");
+        form.hidden = !d.cancelavel;
+        form.action = d.cancelarUrl;
+
+        cards.forEach(function (c) { c.classList.toggle("sel", c === card); });
+        layout.classList.add("aberto");
+        painel.hidden = false;
+        fundo.hidden = false;
+        ativo = card;
+        el("p-fechar").focus();
+    }
+
+    function fechar() {
+        painel.hidden = true;
+        fundo.hidden = true;
+        layout.classList.remove("aberto");
+        cards.forEach(function (c) { c.classList.remove("sel"); });
+        if (ativo) ativo.focus();
+        ativo = null;
+    }
+
+    cards.forEach(function (card) {
+        card.addEventListener("click", function () { abrir(card); });
+        card.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(card); }
+        });
+    });
+    el("p-fechar").addEventListener("click", fechar);
+    fundo.addEventListener("click", fechar);
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && !painel.hidden) fechar();
+    });
+    el("p-cancelar").addEventListener("submit", function (e) {
+        if (!confirm("Deseja realmente solicitar o cancelamento desta reserva?")) e.preventDefault();
+    });
+})();
+</script>
 {% endblock %}

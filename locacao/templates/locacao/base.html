@@ -113,7 +113,7 @@
             <nav class="nc-menu" aria-label="Principal">
                 <a href="{% url 'index' %}" {% if request.resolver_match.url_name == 'index' %}class="ativo"{% endif %}>Início</a>
                 <a href="{% url 'veiculos' %}" {% if request.resolver_match.url_name == 'veiculos' or request.resolver_match.url_name == 'detalhe_veiculo' %}class="ativo"{% endif %}>Veículos</a>
-                <a href="/minhas-reservas/">Reservas</a>
+                <a href="{% url 'minhas_reservas' %}" {% if request.resolver_match.url_name == 'minhas_reservas' %}class="ativo"{% endif %}>Reservas</a>
                 <a href="{% url 'index' %}#contato">Contato</a>
             </nav>
 
