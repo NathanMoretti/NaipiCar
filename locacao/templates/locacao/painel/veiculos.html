@@ -1,0 +1,374 @@
+{% extends 'locacao/painel/base_painel.html' %}
+{% load l10n %}
+
+{% block titulo %}Veículos - Painel NaipiCar{% endblock %}
+
+{% block extra_head %}
+<style>
+    .cartoes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    .cartao-stat { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 20px; display: flex; gap: 16px; align-items: center; }
+    .cartao-stat .icone { flex: none; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+    .cartao-stat span { font-size: .8125rem; color: var(--suave); display: block; }
+    .cartao-stat strong { font-size: 1.75rem; line-height: 1.1; display: block; }
+    .cartao-stat small { font-size: .6875rem; color: var(--suave); }
+    .i-total { background: var(--verde-claro); color: var(--verde); }
+    .i-disponivel { background: #d9f2e4; color: #1f8a4c; }
+    .i-reservado { background: #fbefc9; color: #b7791f; }
+    .i-indisponivel { background: #fbdcdc; color: #c0392b; }
+
+    .filtros { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+    .filtros label { display: block; font-size: .6875rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); margin-bottom: 6px; }
+    .filtros .grupo { flex: 1; min-width: 180px; }
+    .filtros .grupo.busca { flex: 2; min-width: 240px; }
+    .campo { display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; background: #fff; color: var(--suave); }
+    .campo input, .campo select { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: inherit; font-size: .9rem; color: var(--texto); }
+
+    .tabela-caixa { background: #fff; border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; }
+    .rolagem { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 820px; }
+    th { text-align: left; font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); padding: 14px 20px; border-bottom: 1px solid var(--borda); }
+    td { padding: 14px 20px; border-bottom: 1px solid var(--borda); font-size: .875rem; vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .veic { display: flex; align-items: center; gap: 14px; }
+    .miniatura { width: 80px; height: 48px; border-radius: 8px; background: #f1f3f5; overflow: hidden; display: flex; align-items: center; justify-content: center; flex: none; color: var(--suave); }
+    .miniatura img { width: 100%; height: 100%; object-fit: contain; }
+    .veic strong { display: block; font-size: .9375rem; }
+    .veic small { color: var(--suave); font-size: .75rem; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: .75rem; font-weight: 600; }
+    .badge.disponivel { background: #d9f2e4; color: #1f6f43; }
+    .badge.reservado { background: #fbefc9; color: #8a5a00; }
+    .badge.indisponivel { background: #f7b9b9; color: #8c1f1f; }
+    .acoes { display: flex; gap: 8px; justify-content: flex-end; }
+    .acoes form { margin: 0; }
+    .icone-btn { width: 32px; height: 32px; border: 0; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: .95rem; }
+    .icone-btn.editar { background: var(--verde-claro); color: var(--verde); }
+    .icone-btn.excluir { background: #fbdcdc; color: #c0392b; }
+    .vazio { padding: 40px; text-align: center; color: var(--suave); }
+
+    .rodape-tabela { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 20px; border-top: 1px solid var(--borda); color: var(--suave); font-size: .875rem; }
+    .paginas { display: flex; gap: 8px; align-items: center; }
+    .paginas a, .paginas span { min-width: 32px; height: 32px; padding: 0 8px; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+    .paginas a { border: 1px solid var(--borda); background: #fff; }
+    .paginas a.atual { background: var(--verde); border-color: var(--verde); color: #fff; }
+
+    /* Pop-up de cadastro / edição */
+    .modal { border: 0; padding: 0; border-radius: 16px; width: min(680px, calc(100% - 32px)); max-height: 94vh; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; color: var(--texto); }
+    .modal[open] { display: flex; flex-direction: column; }
+    .modal::backdrop { background: rgba(10, 30, 25, .55); }
+    .modal form { display: flex; flex-direction: column; min-height: 0; flex: 1; margin: 0; }
+    .modal-topo { display: flex; justify-content: space-between; align-items: center; padding: 22px 32px; border-bottom: 1px solid var(--borda); }
+    .modal-topo h2 { margin: 0; font-size: 1.375rem; font-weight: 700; }
+    .modal-x { border: 0; background: #eef1f3; width: 32px; height: 32px; border-radius: 50%; color: var(--suave); cursor: pointer; }
+    .modal-x:hover { background: #e1e6ea; color: var(--texto); }
+    .modal-corpo { padding: 22px 32px; overflow-y: auto; }
+    .modal-rodape { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 32px; border-top: 1px solid var(--borda); }
+    .rotulo { display: block; font-size: .8125rem; font-weight: 600; margin-bottom: 6px; }
+    .zona { position: relative; height: 160px; border: 1.5px dashed #9fb0bd; border-radius: 12px; background: #f6f8fa; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; margin-bottom: 20px; }
+    .zona.arrastando { background: var(--verde-claro); border-color: var(--verde); }
+    .zona input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .zona .texto strong { display: block; font-size: .875rem; margin-top: 10px; }
+    .zona .texto small { color: var(--suave); font-size: .75rem; }
+    .zona .nuvem { width: 44px; height: 44px; border-radius: 50%; background: #e6ebef; color: var(--verde); display: inline-flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+    .zona img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #f6f8fa; pointer-events: none; }
+    .grade-form { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 16px; }
+    .grade-form input, .grade-form select { width: 100%; height: 44px; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; font: inherit; font-size: .9375rem; background: #fff; color: var(--texto); }
+    .grade-form input[readonly] { background: #f6f8fa; color: var(--suave); }
+    .erro-campo { color: var(--erro); font-size: .75rem; margin-top: 4px; }
+
+    @media (max-width: 1100px) { .cartoes { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .cartoes, .grade-form { grid-template-columns: 1fr; } .modal-topo, .modal-corpo, .modal-rodape { padding-left: 20px; padding-right: 20px; } }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="pl-topo">
+    <div>
+        <h1>Veículos</h1>
+        <div class="pl-migalhas"><a href="{% url 'index' %}">Início</a> &nbsp;›&nbsp; <strong>Veículos</strong></div>
+    </div>
+    <button type="button" class="btn btn-verde" id="btn-novo"><i class="bi bi-plus-lg"></i> Cadastrar veículo</button>
+</div>
+
+<div class="cartoes">
+    <div class="cartao-stat"><div class="icone i-total"><i class="bi bi-car-front"></i></div><div><span>Total de veículos</span><strong>{{ stats.total }}</strong><small>veículos cadastrados</small></div></div>
+    <div class="cartao-stat"><div class="icone i-disponivel"><i class="bi bi-check-circle"></i></div><div><span>Disponíveis</span><strong>{{ stats.disponiveis }}</strong><small>veículos disponíveis</small></div></div>
+    <div class="cartao-stat"><div class="icone i-reservado"><i class="bi bi-clock"></i></div><div><span>Reservados</span><strong>{{ stats.reservados }}</strong><small>veículos reservados hoje</small></div></div>
+    <div class="cartao-stat"><div class="icone i-indisponivel"><i class="bi bi-exclamation-triangle"></i></div><div><span>Indisponíveis</span><strong>{{ stats.indisponiveis }}</strong><small>fora de operação</small></div></div>
+</div>
+
+<form method="get" class="filtros">
+    <div class="grupo busca">
+        <label for="f-q">Buscar veículo</label>
+        <div class="campo"><i class="bi bi-search"></i><input type="search" id="f-q" name="q" value="{{ filtro.q }}" placeholder="Buscar veículo, marca ou placa..."></div>
+    </div>
+    <div class="grupo">
+        <label for="f-categoria">Categoria</label>
+        <div class="campo">
+            <select id="f-categoria" name="categoria">
+                <option value="">Todas as categorias</option>
+                {% for c in categorias %}<option value="{{ c.id }}" {% if filtro.categoria == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nome }}</option>{% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="grupo">
+        <label for="f-status">Status</label>
+        <div class="campo">
+            <select id="f-status" name="status">
+                <option value="">Todos os status</option>
+                <option value="disponivel" {% if filtro.status == "disponivel" %}selected{% endif %}>Disponível</option>
+                <option value="reservado" {% if filtro.status == "reservado" %}selected{% endif %}>Reservado</option>
+                <option value="indisponivel" {% if filtro.status == "indisponivel" %}selected{% endif %}>Indisponível</option>
+            </select>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-contorno"><i class="bi bi-sliders"></i> Filtrar</button>
+</form>
+
+<div class="tabela-caixa">
+    <div class="rolagem">
+        <table>
+            <thead>
+                <tr><th>Veículo</th><th>Placa</th><th>Categoria</th><th>Ano</th><th>Diária</th><th>Status</th><th style="text-align: right;">Ações</th></tr>
+            </thead>
+            <tbody>
+                {% for v in veiculos %}
+                    <tr data-id="{{ v.id }}"
+                        data-nome="{{ v.modelo }}"
+                        data-modelo="{{ v.modelo_id }}"
+                        data-placa="{{ v.placa|default:'' }}"
+                        data-categoria="{{ v.categoria_classe_id|default:'' }}"
+                        data-ano="{{ v.ano }}"
+                        data-km="{{ v.quilometragem }}"
+                        data-motor="{{ v.motorizacao }}"
+                        data-disponivel="{{ v.disponivel }}"
+                        data-img="{% if v.imagem %}{{ v.imagem.url }}{% endif %}"
+                        data-editar-url="{% url 'painel_veiculo_editar' v.id %}">
+                        <td>
+                            <div class="veic">
+                                <div class="miniatura">{% if v.imagem %}<img src="{{ v.imagem.url }}" alt="">{% else %}<i class="bi bi-car-front"></i>{% endif %}</div>
+                                <div><strong>{{ v.modelo }}</strong><small>{{ v.categoria_classe.classe.nome|default:"Sem classe" }}</small></div>
+                            </div>
+                        </td>
+                        <td>{{ v.placa|default:"—" }}</td>
+                        <td>{{ v.categoria_classe.categoria.nome|default:"—" }}</td>
+                        <td>{{ v.ano }}</td>
+                        <td><strong>R$ {{ v.diaria|floatformat:2 }}</strong></td>
+                        <td><span class="badge {{ v.classe }}">{{ v.situacao }}</span></td>
+                        <td>
+                            <div class="acoes">
+                                <button type="button" class="icone-btn editar js-editar" aria-label="Editar {{ v.modelo }}"><i class="bi bi-pencil"></i></button>
+                                <form method="post" action="{% url 'painel_veiculo_excluir' v.id %}" class="js-excluir" data-nome="{{ v.modelo }}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="icone-btn excluir" aria-label="Excluir {{ v.modelo }}"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="7" class="vazio">Nenhum veículo encontrado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="rodape-tabela">
+        <span>Mostrando {{ pagina.start_index }} a {{ pagina.end_index }} de {{ pagina.paginator.count }} veículo{{ pagina.paginator.count|pluralize }}</span>
+        {% if pagina.paginator.num_pages > 1 %}
+            <div class="paginas">
+                {% if pagina.has_previous %}<a href="?{{ querystring }}&page={{ pagina.previous_page_number }}" aria-label="Página anterior"><i class="bi bi-chevron-left"></i></a>{% endif %}
+                {% for n in paginas %}
+                    {% if n == reticencias %}<span>…</span>
+                    {% else %}<a href="?{{ querystring }}&page={{ n }}" class="{% if n == pagina.number %}atual{% endif %}">{{ n }}</a>{% endif %}
+                {% endfor %}
+                {% if pagina.has_next %}<a href="?{{ querystring }}&page={{ pagina.next_page_number }}" aria-label="Próxima página"><i class="bi bi-chevron-right"></i></a>{% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Pop-up: cadastrar / editar -->
+<dialog id="modal-veiculo" class="modal" aria-labelledby="v-titulo"
+        data-abrir="{% if modal %}1{% endif %}" data-url-novo="{% url 'painel_veiculos' %}">
+    <form method="post" enctype="multipart/form-data" id="v-form" action="{{ modal.acao|default:'' }}">
+        {% csrf_token %}
+        <div class="modal-topo">
+            <h2 id="v-titulo">{{ modal.titulo|default:"Cadastrar Veículo" }}</h2>
+            <button type="button" class="modal-x" id="v-fechar" aria-label="Fechar"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div class="modal-corpo">
+            {% if form.non_field_errors %}<div class="pl-alerta">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+
+            <span class="rotulo">Foto do Veículo</span>
+            <div class="zona" id="zona">
+                <img id="v-previa" alt="" hidden>
+                <div class="texto" id="v-zona-texto">
+                    <span class="nuvem"><i class="bi bi-cloud-arrow-up"></i></span>
+                    <strong>Clique para fazer upload ou arraste e solte</strong>
+                    <small>PNG, JPG ou JPEG (máx. 5MB)</small>
+                </div>
+                {{ form.imagem }}
+            </div>
+            {% for e in form.imagem.errors %}<div class="erro-campo" style="margin-top: -14px; margin-bottom: 14px;">{{ e }}</div>{% endfor %}
+
+            <div class="grade-form">
+                <div>
+                    <label class="rotulo" for="{{ form.modelo.id_for_label }}">Nome do Veículo</label>
+                    {{ form.modelo }}
+                    {% for e in form.modelo.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form.placa.id_for_label }}">Placa</label>
+                    {{ form.placa }}
+                    {% for e in form.placa.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form.categoria_classe.id_for_label }}">Categoria</label>
+                    {{ form.categoria_classe }}
+                    {% for e in form.categoria_classe.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form.ano.id_for_label }}">Ano</label>
+                    {{ form.ano }}
+                    {% for e in form.ano.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="v-diaria">Diária (R$)</label>
+                    <input type="text" id="v-diaria" readonly value="R$ 0,00" aria-describedby="v-diaria-dica">
+                    <div class="erro-campo" id="v-diaria-dica" style="color: var(--suave);">Definida pela categoria e classe.</div>
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form.disponivel.id_for_label }}">Status do Veículo</label>
+                    {{ form.disponivel }}
+                    {% for e in form.disponivel.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form.motorizacao.id_for_label }}">Motorização</label>
+                    {{ form.motorizacao }}
+                    {% for e in form.motorizacao.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form.quilometragem.id_for_label }}">Quilometragem (km)</label>
+                    {{ form.quilometragem }}
+                    {% for e in form.quilometragem.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-rodape">
+            <button type="button" class="btn btn-contorno" id="v-cancelar">Cancelar</button>
+            <button type="submit" class="btn btn-verde" id="v-enviar">{{ modal.botao|default:"Cadastrar Veículo" }}</button>
+        </div>
+    </form>
+</dialog>
+
+{{ diarias|json_script:"dados-diarias" }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var modal = document.getElementById("modal-veiculo");
+    var form = document.getElementById("v-form");
+    var diarias = JSON.parse(document.getElementById("dados-diarias").textContent);
+    var URL_NOVO = modal.dataset.urlNovo;
+
+    function $(id) { return document.getElementById(id); }
+    function reais(n) { return Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+
+    function atualizarDiaria() {
+        var id = $("id_categoria_classe").value;
+        $("v-diaria").value = reais(diarias[id] || 0);
+    }
+
+    function mostrarPrevia(url) {
+        var img = $("v-previa");
+        if (url) { img.src = url; img.hidden = false; $("v-zona-texto").hidden = true; }
+        else { img.removeAttribute("src"); img.hidden = true; $("v-zona-texto").hidden = false; }
+    }
+
+    function limparErros() {
+        modal.querySelectorAll(".erro-campo:not(#v-diaria-dica), .pl-alerta").forEach(function (e) { e.remove(); });
+    }
+
+    function abrirNovo() {
+        limparErros();
+        form.action = URL_NOVO;
+        $("v-titulo").textContent = "Cadastrar Veículo";
+        $("v-enviar").textContent = "Cadastrar Veículo";
+        ["id_modelo", "id_placa", "id_categoria_classe", "id_ano"].forEach(function (id) { $(id).value = ""; });
+        $("id_quilometragem").value = 0;
+        $("id_motorizacao").selectedIndex = 0;
+        $("id_disponivel").value = "True";
+        $("id_imagem").value = "";
+        mostrarPrevia("");
+        atualizarDiaria();
+        modal.showModal();
+    }
+
+    function abrirEdicao(linha) {
+        var d = linha.dataset;
+        limparErros();
+        form.action = d.editarUrl;
+        $("v-titulo").textContent = "Editar Veículo";
+        $("v-enviar").textContent = "Editar Veículo";
+        $("id_modelo").value = d.modelo;
+        $("id_placa").value = d.placa;
+        $("id_categoria_classe").value = d.categoria;
+        $("id_ano").value = d.ano;
+        $("id_quilometragem").value = d.km;
+        $("id_motorizacao").value = d.motor;
+        $("id_disponivel").value = d.disponivel;
+        $("id_imagem").value = "";
+        mostrarPrevia(d.img);
+        atualizarDiaria();
+        modal.showModal();
+    }
+
+    $("btn-novo").addEventListener("click", abrirNovo);
+    document.querySelectorAll(".js-editar").forEach(function (b) {
+        b.addEventListener("click", function () { abrirEdicao(b.closest("tr")); });
+    });
+    document.querySelectorAll(".js-excluir").forEach(function (f) {
+        f.addEventListener("submit", function (e) {
+            if (!confirm("Excluir o veículo " + f.dataset.nome + "? Essa ação não pode ser desfeita.")) e.preventDefault();
+        });
+    });
+
+    $("v-fechar").addEventListener("click", function () { modal.close(); });
+    $("v-cancelar").addEventListener("click", function () { modal.close(); });
+    modal.addEventListener("click", function (e) { if (e.target === modal) modal.close(); });
+
+    $("id_categoria_classe").addEventListener("change", atualizarDiaria);
+
+    // Foto: pré-visualização, arrastar e soltar
+    var zona = $("zona"), arquivo = $("id_imagem");
+    arquivo.addEventListener("change", function () {
+        var f = arquivo.files[0];
+        if (!f) return;
+        if (f.size > 5 * 1024 * 1024) { alert("A foto deve ter no máximo 5MB."); arquivo.value = ""; return; }
+        var leitor = new FileReader();
+        leitor.onload = function (e) { mostrarPrevia(e.target.result); };
+        leitor.readAsDataURL(f);
+    });
+    ["dragenter", "dragover"].forEach(function (nome) {
+        zona.addEventListener(nome, function (e) { e.preventDefault(); zona.classList.add("arrastando"); });
+    });
+    ["dragleave", "drop"].forEach(function (nome) {
+        zona.addEventListener(nome, function () { zona.classList.remove("arrastando"); });
+    });
+    zona.addEventListener("drop", function (e) {
+        e.preventDefault();
+        if (e.dataTransfer.files.length) { arquivo.files = e.dataTransfer.files; arquivo.dispatchEvent(new Event("change")); }
+    });
+
+    // Filtros: aplica ao trocar categoria ou status
+    ["f-categoria", "f-status"].forEach(function (id) {
+        $(id).addEventListener("change", function () { this.form.submit(); });
+    });
+
+    atualizarDiaria();
+    if (modal.dataset.abrir) modal.showModal();
+})();
+</script>
+{% endblock %}

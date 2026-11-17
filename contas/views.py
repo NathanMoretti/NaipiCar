@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.views import LoginView
 from django.shortcuts import redirect, render, resolve_url
-
+from django.urls import reverse
 from .forms import CadastroForm, LoginForm
 
 
@@ -12,7 +12,7 @@ class NaipiLoginView(LoginView):
     redirect_authenticated_user = True
 
     def get_default_redirect_url(self):
-        return resolve_url('/admin/' if self.request.user.is_staff else 'index')
+        return resolve_url('painel' if self.request.user.is_staff else 'index')
 
 
 def cadastro(request):

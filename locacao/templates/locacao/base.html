@@ -121,7 +121,7 @@
                 {% if user.is_authenticated %}
                     <span>Olá, {{ user.first_name|default:"cliente" }}</span>
                     {% if user.is_staff %}
-                        <a href="/admin/" class="nc-btn nc-btn-verde nc-btn-sm">
+                        <a href="{% url 'painel' %}" class="nc-btn nc-btn-verde nc-btn-sm">
                             <i class="bi bi-gear"></i> Painel admin
                         </a>
                     {% endif %}
@@ -132,8 +132,8 @@
                         </button>
                     </form>
                 {% else %}
-                    <a href="/login/" class="nc-btn nc-btn-verde"><i class="bi bi-person"></i> Entrar</a>
-                    <a href="/cadastro/" class="nc-btn nc-btn-contorno">Criar Conta</a>
+                    <a href="{% url 'login' %}" class="nc-btn nc-btn-verde"><i class="bi bi-person"></i> Entrar</a>
+                    <a href="{% url 'cadastro' %}" class="nc-btn nc-btn-contorno">Criar Conta</a>
                 {% endif %}
             </div>
         </div>

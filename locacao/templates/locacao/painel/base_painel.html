@@ -1,0 +1,120 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titulo %}Painel - NaipiCar{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --verde: #0e5a47; --verde-escuro: #0a4536; --verde-claro: #e3f0ec;
+            --lateral: #0a2c26; --lateral-ativo: #14513f;
+            --fundo: #f3f5f7; --borda: #e1e6ea; --texto: #17212b; --suave: #5b6672; --erro: #c0392b;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "Inter", system-ui, sans-serif; background: var(--fundo); color: var(--texto); }
+        a { color: inherit; text-decoration: none; }
+        :focus-visible { outline: 3px solid #2f9e7f; outline-offset: 2px; }
+        [hidden] { display: none !important; }
+
+        .pl { display: flex; min-height: 100vh; }
+        .pl-lateral {
+            width: 260px; flex: none; background: var(--lateral); color: #cfe3dc;
+            display: flex; flex-direction: column; padding: 20px 16px; position: sticky; top: 0; height: 100vh;
+        }
+        .pl-logo { display: block; padding: 4px 4px 0; margin-bottom: 14px; }
+        .pl-logo img { width: 100%; height: auto; }  /* para ajustar o tamanho, mude o width (ex.: 80% menor, 100% maior) */
+        .pl-rotulo { font-size: .6875rem; letter-spacing: .06em; text-transform: uppercase; color: #8fb3a8; margin: 6px 4px 14px; }
+        .pl-nav { display: grid; gap: 6px; }
+        .pl-nav a, .pl-nav span {
+            display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; font-weight: 500;
+        }
+        .pl-nav a:hover { background: rgba(255,255,255,.07); }
+        .pl-nav a.ativo { background: var(--lateral-ativo); color: #fff; }
+        .pl-nav .desativado { opacity: .45; cursor: not-allowed; }
+        .pl-nav small { margin-left: auto; font-size: .6875rem; }
+        .pl-usuario { margin-top: auto; border-top: 1px solid rgba(255,255,255,.12); padding-top: 16px; }
+        .pl-quem { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+        .pl-avatar {
+            width: 38px; height: 38px; border-radius: 50%; background: var(--verde); color: #fff; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .pl-quem strong { display: block; font-size: .875rem; color: #fff; }
+        .pl-quem small { font-size: .75rem; color: #8fb3a8; word-break: break-all; }
+        .pl-sair { display: flex; align-items: center; gap: 10px; background: none; border: 0; color: #cfe3dc; font: inherit; cursor: pointer; padding: 4px; }
+        .pl-sair:hover { color: #fff; }
+        .pl-ver-site { display: flex; align-items: center; gap: 10px; padding: 4px; margin-bottom: 10px; font-size: .875rem; }
+
+        .pl-principal { flex: 1; min-width: 0; padding: 32px; }
+        .pl-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+        .pl-topo h1 { margin: 0; font-size: 2rem; font-weight: 700; }
+        .pl-migalhas { font-size: .8125rem; color: var(--suave); margin-top: 4px; }
+        .pl-migalhas strong { color: var(--verde); font-weight: 600; }
+
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; border-radius: 8px; border: 1.5px solid var(--verde); font: inherit; font-weight: 600; cursor: pointer; }
+        .btn-verde { background: var(--verde); color: #fff; }
+        .btn-verde:hover { background: var(--verde-escuro); }
+        .btn-contorno { background: #fff; color: var(--texto); border-color: var(--borda); }
+        .btn-contorno:hover { background: #f3f5f7; }
+
+        .pl-alerta { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; font-size: .9rem; background: #fdecea; color: var(--erro); }
+        .pl-alerta.success { background: var(--verde-claro); color: var(--verde-escuro); }
+        .pl-alerta.warning { background: #fff3c4; color: #7a5d00; }
+
+        @media (max-width: 900px) {
+            .pl { flex-direction: column; }
+            .pl-lateral { width: 100%; height: auto; position: static; padding: 14px; }
+            .pl-nav { grid-auto-flow: column; overflow-x: auto; }
+            .pl-usuario { display: flex; justify-content: space-between; align-items: center; }
+            .pl-quem { margin: 0; }
+            .pl-principal { padding: 20px 16px; }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="pl">
+    <aside class="pl-lateral">
+        <a href="{% url 'index' %}" class="pl-logo"><img src="{% static 'img/logoBranca.png' %}" alt="NaipiCar"></a>
+        <div class="pl-rotulo">Painel administrativo</div>
+
+        <nav class="pl-nav" aria-label="Painel">
+            <span class="desativado" title="Em breve"><i class="bi bi-grid"></i> Dashboard <small>em breve</small></span>
+            <a href="{% url 'painel_veiculos' %}" class="{% if request.resolver_match.url_name == 'painel_veiculos' %}ativo{% endif %}"><i class="bi bi-car-front"></i> Veículos</a>
+            <span class="desativado" title="Em breve"><i class="bi bi-calendar3"></i> Reservas <small>em breve</small></span>
+        </nav>
+
+        <div class="pl-usuario">
+            <a href="{% url 'index' %}" class="pl-ver-site"><i class="bi bi-box-arrow-up-right"></i> Ver site</a>
+            <div class="pl-quem">
+                <div class="pl-avatar">{{ user.first_name|slice:":1"|default:"A"|upper }}</div>
+                <div>
+                    <strong>{{ user.full_name|default:user.first_name|default:"Administrador" }}</strong>
+                    <small>{{ user.email }}</small>
+                </div>
+            </div>
+            <form method="post" action="{% url 'logout' %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="pl-sair"><i class="bi bi-box-arrow-left"></i> Sair</button>
+            </form>
+        </div>
+    </aside>
+
+    <main class="pl-principal">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="pl-alerta {{ message.tags }}" role="alert">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        {% block conteudo %}{% endblock %}
+    </main>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>
