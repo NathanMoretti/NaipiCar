@@ -1,16 +1,29 @@
-from datetime import date
+import json
+import re
+from datetime import date, timedelta
 from functools import wraps
 
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Count, Q, Sum
+from django.forms.models import model_to_dict
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render, resolve_url
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from .forms import VeiculoForm
-from .models import Categoria, CategoriaClasse, Reserva, Veiculo
+from .forms import (
+    CategoriaClasseForm,
+    CategoriaForm,
+    ClasseCarroForm,
+    MarcaForm,
+    ModeloCarroForm,
+    VeiculoForm,
+)
+from .models import Categoria, CategoriaClasse, ClasseCarro, Marca, ModeloCarro, Reserva, Veiculo
 
 def somente_admin(view):
     """Só administradores (is_staff) entram.
@@ -172,3 +185,360 @@ def veiculo_excluir(request, pk):
         veiculo.delete()
         messages.success(request, f"Veículo {nome} excluído.")
     return redirect("painel_veiculos")
+
+
+# ---------------------------------------------------------------------------
+# Situação das reservas
+# ---------------------------------------------------------------------------
+# "Atrasado" não existe no banco: é calculado (reserva Confirmada com devolução vencida).
+ROTULOS_SITUACAO = {
+    "Pendente": ("Em análise", "pendente"),
+    "Confirmada": ("Reservado", "confirmada"),
+    "Concluída": ("Concluído", "concluida"),
+    "Cancelada": ("Cancelado", "cancelada"),
+}
+
+# Para qual situação cada reserva pode ser alterada pelo administrador
+TRANSICOES = {
+    "Pendente": ["Pendente", "Confirmada", "Cancelada"],
+    "Confirmada": ["Confirmada", "Concluída", "Cancelada"],
+    "Concluída": ["Concluída"],
+    "Cancelada": ["Cancelada"],
+}
+
+
+def _situacao(reserva, hoje):
+    if reserva.status == "Confirmada" and reserva.data_devolucao < hoje:
+        return "Atrasado", "atrasado"
+    return ROTULOS_SITUACAO.get(reserva.status, (reserva.status, "concluida"))
+
+
+def _cpf_oculto(cpf):
+    cpf = cpf or ""
+    return f"{cpf[:3]}.***.***-**" if cpf else "—"
+
+
+# ---------------------------------------------------------------------------
+# Dashboard
+# ---------------------------------------------------------------------------
+@somente_admin
+def dashboard(request):
+    hoje = date.today()
+
+    frota = Veiculo.objects.filter(disponivel=True)
+    n_frota = frota.count()
+    ocupados = frota.filter(id__in=_ids_reservados()).count()
+    taxa = round(ocupados * 100 / n_frota) if n_frota else 0
+
+    atrasadas = Reserva.objects.filter(status="Confirmada", data_devolucao__lt=hoje)
+    receita = (
+        Reserva.objects.filter(data_retirada__year=hoje.year, data_retirada__month=hoje.month)
+        .exclude(status="Cancelada")
+        .aggregate(t=Sum("valor_total"))["t"]
+        or 0
+    )
+
+    # Radar do dia: atrasos, retiradas e devoluções de hoje
+    def linha(r, acao, classe, status):
+        placa = r.veiculo.placa or "sem placa"
+        return {"cliente": r.nome_cliente, "veiculo": f"{r.veiculo.modelo} ({placa})",
+                "acao": acao, "classe": classe, "status": status}
+
+    base = Reserva.objects.select_related("veiculo__modelo__marca")
+    radar = [linha(r, "Atrasado", "atrasado", "Atrasado")
+             for r in base.filter(status="Confirmada", data_devolucao__lt=hoje).order_by("data_devolucao")]
+    radar += [linha(r, "Retirada", "retirada", "Aguardando" if r.status == "Confirmada" else "Em análise")
+              for r in base.filter(data_retirada=hoje, status__in=["Pendente", "Confirmada"])]
+    radar += [linha(r, "Devolução", "devolucao", "No prazo")
+              for r in base.filter(data_devolucao=hoje, status="Confirmada")]
+    total_radar = len(radar)
+
+    # Demanda por categoria nos últimos 30 dias
+    periodo = Reserva.objects.filter(
+        data_retirada__gte=hoje - timedelta(days=30), data_retirada__lte=hoje
+    ).exclude(status="Cancelada")
+    total_periodo = periodo.count()
+    categorias = [
+        {
+            "nome": c["veiculo__categoria_classe__categoria__nome"] or "Sem categoria",
+            "n": c["n"],
+            "pct": round(c["n"] * 100 / total_periodo),
+        }
+        for c in periodo.values("veiculo__categoria_classe__categoria__nome")
+        .annotate(n=Count("id")).order_by("-n")[:4]
+    ] if total_periodo else []
+    mais_alugado = (
+        periodo.values("veiculo__modelo__marca__nome", "veiculo__modelo__nome")
+        .annotate(n=Count("id")).order_by("-n").first()
+    )
+
+    return render(request, "locacao/painel/dashboard.html", {
+        "hoje": hoje,
+        "reservados": ocupados,
+        "taxa": taxa,
+        "atrasos": atrasadas.count(),
+        "receita": receita,
+        "radar": radar[:8],
+        "total_radar": total_radar,
+        "categorias": categorias,
+        "mais_alugado": mais_alugado,
+    })
+
+
+# ---------------------------------------------------------------------------
+# Reservas
+# ---------------------------------------------------------------------------
+@somente_admin
+def reservas_painel(request):
+    hoje = date.today()
+    lista = Reserva.objects.select_related(
+        "cliente", "veiculo__modelo__marca", "veiculo__categoria_classe__categoria"
+    ).order_by("-id")
+
+    q = request.GET.get("q", "").strip()
+    situacao = request.GET.get("situacao", "")
+    periodo = request.GET.get("periodo", "")
+
+    if q:
+        filtro = (
+            Q(nome_cliente__icontains=q) | Q(email_cliente__icontains=q)
+            | Q(veiculo__placa__icontains=q) | Q(veiculo__modelo__nome__icontains=q)
+            | Q(veiculo__modelo__marca__nome__icontains=q)
+        )
+        codigo = re.match(r"^(?:res-?)?(\d+)$", q, re.IGNORECASE)  # "RES-1048" ou "1048"
+        if codigo:
+            filtro |= Q(id=int(codigo.group(1)))
+        lista = lista.filter(filtro)
+
+    if situacao == "pendente":
+        lista = lista.filter(status="Pendente")
+    elif situacao == "confirmada":
+        lista = lista.filter(status="Confirmada", data_devolucao__gte=hoje)
+    elif situacao == "atrasado":
+        lista = lista.filter(status="Confirmada", data_devolucao__lt=hoje)
+    elif situacao == "concluida":
+        lista = lista.filter(status="Concluída")
+    elif situacao == "cancelada":
+        lista = lista.filter(status="Cancelada")
+
+    if periodo == "hoje":
+        lista = lista.filter(Q(data_retirada=hoje) | Q(data_devolucao=hoje))
+    elif periodo == "semana":
+        lista = lista.filter(data_retirada__gte=hoje, data_retirada__lte=hoje + timedelta(days=7))
+    elif periodo == "mes":
+        lista = lista.filter(data_retirada__year=hoje.year, data_retirada__month=hoje.month)
+
+    pagina = Paginator(lista, 5).get_page(request.GET.get("page"))
+    itens = list(pagina.object_list)
+    for r in itens:
+        r.dias = max((r.data_devolucao - r.data_retirada).days, 1)
+        r.diaria_calculada = r.valor_total / r.dias
+        r.rotulo, r.classe = _situacao(r, hoje)
+        r.cpf = getattr(r.cliente, "cpf", "") if r.cliente else ""
+        r.cpf_oculto = _cpf_oculto(r.cpf)
+        r.opcoes = "|".join(TRANSICOES.get(r.status, [r.status]))
+
+    todas = Reserva.objects
+    params = request.GET.copy()
+    params.pop("page", None)
+
+    return render(request, "locacao/painel/reservas.html", {
+        "reservas": itens,
+        "pagina": pagina,
+        "paginas": list(pagina.paginator.get_elided_page_range(pagina.number, on_each_side=1, on_ends=1)),
+        "reticencias": pagina.paginator.ELLIPSIS,
+        "querystring": params.urlencode(),
+        "filtro": {"q": q, "situacao": situacao, "periodo": periodo},
+        "stats": {
+            "total": todas.count(),
+            "analise": todas.filter(status="Pendente").count(),
+            "reservadas": todas.filter(status="Confirmada", data_devolucao__gte=hoje).count(),
+            "atrasadas": todas.filter(status="Confirmada", data_devolucao__lt=hoje).count(),
+            "concluidas": todas.filter(status="Concluída").count(),
+        },
+        "rotulos": {k: v[0] for k, v in ROTULOS_SITUACAO.items()},
+    })
+
+
+@somente_admin
+@require_POST
+def reserva_situacao(request, pk):
+    reserva = get_object_or_404(Reserva, pk=pk)
+    novo = request.POST.get("status", "")
+    destino = request.POST.get("voltar", "")
+    if not (destino and url_has_allowed_host_and_scheme(destino, allowed_hosts={request.get_host()})):
+        destino = reverse("painel_reservas")
+
+    if novo not in TRANSICOES.get(reserva.status, []):
+        messages.error(request, "Não é possível mudar a reserva para essa situação.")
+    elif novo == reserva.status:
+        messages.info(request, "Nenhuma alteração feita.")
+    else:
+        reserva.status = novo
+        reserva.save(update_fields=["status"])
+        messages.success(request, f"Reserva RES-{reserva.id:04d} atualizada para {ROTULOS_SITUACAO[novo][0]}.")
+    return redirect(destino)
+
+
+# ---------------------------------------------------------------------------
+# Cadastros: marcas, modelos, categorias, classes e diárias
+# ---------------------------------------------------------------------------
+def _reais(valor):
+    texto = f"{valor:,.2f}"
+    return "R$ " + texto.replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+# Cada aba é descrita aqui; as views abaixo servem para todas elas.
+CADASTROS = {
+    "marcas": {
+        "titulo": "Marcas", "singular": "marca", "artigo": "a",
+        "model": Marca, "form": MarcaForm,
+        "ordem": ["nome"], "relacionados": [], "busca": ["nome"],
+        "colunas": ["Marca", "Modelos cadastrados"],
+        "celulas": lambda o: [o.nome, ModeloCarro.objects.filter(marca=o).count()],
+        "em_uso": lambda o: ModeloCarro.objects.filter(marca=o).exists(),
+        "motivo": "Esta marca tem modelos cadastrados.",
+    },
+    "modelos": {
+        "titulo": "Modelos", "singular": "modelo", "artigo": "o",
+        "model": ModeloCarro, "form": ModeloCarroForm,
+        "ordem": ["marca__nome", "nome"], "relacionados": ["marca"], "busca": ["nome", "marca__nome"],
+        "colunas": ["Marca", "Modelo", "Assentos", "Malas", "Veículos"],
+        "celulas": lambda o: [o.marca.nome, o.nome, getattr(o, "assentos", "—"), getattr(o, "malas", "—"),
+                              Veiculo.objects.filter(modelo=o).count()],
+        "em_uso": lambda o: Veiculo.objects.filter(modelo=o).exists(),
+        "motivo": "Este modelo está em uso por veículos cadastrados.",
+    },
+    "categorias": {
+        "titulo": "Categorias", "singular": "categoria", "artigo": "a",
+        "model": Categoria, "form": CategoriaForm,
+        "ordem": ["nome"], "relacionados": [], "busca": ["nome", "descricao"],
+        "colunas": ["Categoria", "Descrição", "Diárias cadastradas"],
+        "celulas": lambda o: [o.nome, o.descricao or "—", CategoriaClasse.objects.filter(categoria=o).count()],
+        "em_uso": lambda o: CategoriaClasse.objects.filter(categoria=o).exists(),
+        "motivo": "Esta categoria tem diárias cadastradas.",
+    },
+    "classes": {
+        "titulo": "Classes", "singular": "classe", "artigo": "a",
+        "model": ClasseCarro, "form": ClasseCarroForm,
+        "ordem": ["nome"], "relacionados": [], "busca": ["nome"],
+        "colunas": ["Classe", "Diárias cadastradas"],
+        "celulas": lambda o: [o.nome, CategoriaClasse.objects.filter(classe=o).count()],
+        "em_uso": lambda o: CategoriaClasse.objects.filter(classe=o).exists(),
+        "motivo": "Esta classe tem diárias cadastradas.",
+    },
+    "diarias": {
+        "titulo": "Diárias", "singular": "diária", "artigo": "a",
+        "model": CategoriaClasse, "form": CategoriaClasseForm,
+        "ordem": ["categoria__nome", "classe__nome"], "relacionados": ["categoria", "classe"],
+        "busca": ["categoria__nome", "classe__nome"],
+        "colunas": ["Categoria", "Classe", "Diária", "Veículos"],
+        "celulas": lambda o: [o.categoria.nome, o.classe.nome, _reais(o.daily_rate),
+                              Veiculo.objects.filter(categoria_classe=o).count()],
+        "em_uso": lambda o: Veiculo.objects.filter(categoria_classe=o).exists(),
+        "motivo": "Esta combinação está em uso por veículos cadastrados.",
+    },
+}
+
+
+def _config(aba):
+    if aba not in CADASTROS:
+        raise Http404("Cadastro não encontrado.")
+    return CADASTROS[aba]
+
+
+def _contexto_cadastros(request, aba, form=None, modal=None):
+    cfg = _config(aba)
+    lista = cfg["model"].objects.all()
+    if cfg["relacionados"]:
+        lista = lista.select_related(*cfg["relacionados"])
+    lista = lista.order_by(*cfg["ordem"])
+
+    q = request.GET.get("q", "").strip()
+    if q:
+        filtro = Q()
+        for campo in cfg["busca"]:
+            filtro |= Q(**{f"{campo}__icontains": q})
+        lista = lista.filter(filtro)
+
+    pagina = Paginator(lista, 8).get_page(request.GET.get("page"))
+    campos = cfg["form"]._meta.fields
+    linhas = [
+        {
+            "celulas": cfg["celulas"](o),
+            "nome": str(o),
+            "json": json.dumps(model_to_dict(o, fields=campos), cls=DjangoJSONEncoder),
+            "url_editar": reverse("painel_cadastro_editar", args=[aba, o.pk]),
+            "url_excluir": reverse("painel_cadastro_excluir", args=[aba, o.pk]),
+        }
+        for o in pagina.object_list
+    ]
+
+    params = request.GET.copy()
+    params.pop("page", None)
+    vazio = cfg["form"]()
+
+    return {
+        "aba": aba,
+        "cfg": cfg,
+        "abas": [(chave, c["titulo"]) for chave, c in CADASTROS.items()],
+        "linhas": linhas,
+        "pagina": pagina,
+        "paginas": list(pagina.paginator.get_elided_page_range(pagina.number, on_each_side=1, on_ends=1)),
+        "reticencias": pagina.paginator.ELLIPSIS,
+        "querystring": params.urlencode(),
+        "q": q,
+        "form": form or vazio,
+        "iniciais": json.dumps({n: vazio[n].value() for n in vazio.fields}, cls=DjangoJSONEncoder),
+        "url_novo": reverse("painel_cadastros", args=[aba]),
+        "modal": modal,
+    }
+
+
+@somente_admin
+def cadastros_inicio(request):
+    return redirect("painel_cadastros", aba="marcas")
+
+
+@somente_admin
+def cadastros(request, aba):
+    """Lista a aba escolhida e, em POST, cadastra um novo registro."""
+    cfg = _config(aba)
+    if request.method == "POST":
+        form = cfg["form"](request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"{cfg['singular'].capitalize()} cadastrad{cfg['artigo']} com sucesso.")
+            return redirect("painel_cadastros", aba=aba)
+        modal = {"titulo": f"Cadastrar {cfg['singular']}", "botao": "Cadastrar", "acao": reverse("painel_cadastros", args=[aba])}
+        return render(request, "locacao/painel/cadastros.html", _contexto_cadastros(request, aba, form, modal))
+    return render(request, "locacao/painel/cadastros.html", _contexto_cadastros(request, aba))
+
+
+@somente_admin
+@require_POST
+def cadastro_editar(request, aba, pk):
+    cfg = _config(aba)
+    objeto = get_object_or_404(cfg["model"], pk=pk)
+    form = cfg["form"](request.POST, instance=objeto)
+    if form.is_valid():
+        form.save()
+        messages.success(request, f"{cfg['singular'].capitalize()} atualizad{cfg['artigo']} com sucesso.")
+        return redirect("painel_cadastros", aba=aba)
+    modal = {"titulo": f"Editar {cfg['singular']}", "botao": "Salvar alterações",
+             "acao": reverse("painel_cadastro_editar", args=[aba, pk])}
+    return render(request, "locacao/painel/cadastros.html", _contexto_cadastros(request, aba, form, modal))
+
+
+@somente_admin
+@require_POST
+def cadastro_excluir(request, aba, pk):
+    cfg = _config(aba)
+    objeto = get_object_or_404(cfg["model"], pk=pk)
+    if cfg["em_uso"](objeto):
+        messages.error(request, f"{cfg['motivo']} Remova ou altere esses registros antes de excluir.")
+    else:
+        nome = str(objeto)
+        objeto.delete()
+        messages.success(request, f"{nome} excluíd{cfg['artigo']}.")
+    return redirect("painel_cadastros", aba=aba)

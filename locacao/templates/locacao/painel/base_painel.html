@@ -65,6 +65,7 @@
 
         .pl-alerta { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; font-size: .9rem; background: #fdecea; color: var(--erro); }
         .pl-alerta.success { background: var(--verde-claro); color: var(--verde-escuro); }
+        .pl-alerta.info { background: #e0efff; color: #1d5fb3; }
         .pl-alerta.warning { background: #fff3c4; color: #7a5d00; }
 
         @media (max-width: 900px) {
@@ -85,9 +86,10 @@
         <div class="pl-rotulo">Painel administrativo</div>
 
         <nav class="pl-nav" aria-label="Painel">
-            <span class="desativado" title="Em breve"><i class="bi bi-grid"></i> Dashboard <small>em breve</small></span>
+            <a href="{% url 'painel_dashboard' %}" class="{% if request.resolver_match.url_name == 'painel_dashboard' %}ativo{% endif %}"><i class="bi bi-grid"></i> Dashboard</a>
             <a href="{% url 'painel_veiculos' %}" class="{% if request.resolver_match.url_name == 'painel_veiculos' %}ativo{% endif %}"><i class="bi bi-car-front"></i> Veículos</a>
-            <span class="desativado" title="Em breve"><i class="bi bi-calendar3"></i> Reservas <small>em breve</small></span>
+            <a href="{% url 'painel_reservas' %}" class="{% if request.resolver_match.url_name == 'painel_reservas' %}ativo{% endif %}"><i class="bi bi-calendar3"></i> Reservas</a>
+            <a href="{% url 'painel_cadastros_inicio' %}" class="{% if request.resolver_match.url_name == 'painel_cadastros' %}ativo{% endif %}"><i class="bi bi-tags"></i> Cadastros</a>
         </nav>
 
         <div class="pl-usuario">

@@ -1,0 +1,199 @@
+{% extends 'locacao/painel/base_painel.html' %}
+
+{% block titulo %}Cadastros - Painel NaipiCar{% endblock %}
+
+{% block extra_head %}
+<style>
+    .abas { display: flex; gap: 28px; border-bottom: 1px solid var(--borda); margin-bottom: 20px; overflow-x: auto; }
+    .abas a { padding: 8px 0; margin-bottom: -1px; color: var(--suave); font-weight: 600; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .abas a.ativa { color: var(--verde); border-bottom-color: var(--verde); }
+
+    .filtros { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 12px; align-items: center; }
+    .campo { flex: 1; display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; color: var(--suave); }
+    .campo input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: inherit; font-size: .9rem; color: var(--texto); }
+
+    .tabela-caixa { background: #fff; border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; }
+    .rolagem { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 560px; }
+    th { text-align: left; font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); padding: 14px 20px; border-bottom: 1px solid var(--borda); }
+    td { padding: 14px 20px; border-bottom: 1px solid var(--borda); font-size: .875rem; vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: 0; }
+    td:first-child { font-weight: 600; }
+    .acoes { display: flex; gap: 8px; justify-content: flex-end; }
+    .acoes form { margin: 0; }
+    .icone-btn { width: 32px; height: 32px; border: 0; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: .95rem; }
+    .icone-btn.editar { background: var(--verde-claro); color: var(--verde); }
+    .icone-btn.excluir { background: #fbdcdc; color: #c0392b; }
+    .vazio { padding: 40px; text-align: center; color: var(--suave); }
+    .rodape-tabela { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 20px; border-top: 1px solid var(--borda); color: var(--suave); font-size: .875rem; }
+    .paginas { display: flex; gap: 8px; align-items: center; }
+    .paginas a, .paginas span { min-width: 32px; height: 32px; padding: 0 8px; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+    .paginas a { border: 1px solid var(--borda); background: #fff; }
+    .paginas a.atual { background: var(--verde); border-color: var(--verde); color: #fff; }
+
+    .modal { border: 0; padding: 0; border-radius: 16px; width: min(520px, calc(100% - 32px)); max-height: 94vh; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; color: var(--texto); }
+    .modal[open] { display: flex; flex-direction: column; }
+    .modal::backdrop { background: rgba(10, 30, 25, .55); }
+    .modal form { display: flex; flex-direction: column; min-height: 0; flex: 1; margin: 0; }
+    .modal-topo { display: flex; justify-content: space-between; align-items: center; padding: 22px 28px; border-bottom: 1px solid var(--borda); }
+    .modal-topo h2 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+    .modal-x { border: 0; background: #eef1f3; width: 32px; height: 32px; border-radius: 50%; color: var(--suave); cursor: pointer; }
+    .modal-x:hover { background: #e1e6ea; color: var(--texto); }
+    .modal-corpo { padding: 22px 28px; overflow-y: auto; display: grid; gap: 16px; }
+    .modal-rodape { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 28px; border-top: 1px solid var(--borda); }
+    .modal label { display: block; font-size: .8125rem; font-weight: 600; margin-bottom: 6px; }
+    .modal input, .modal select, .modal textarea { width: 100%; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; font: inherit; font-size: .9375rem; background: #fff; color: var(--texto); }
+    .modal input, .modal select { height: 44px; }
+    .modal textarea { padding: 12px 14px; resize: vertical; }
+    .erro-campo { color: var(--erro); font-size: .75rem; margin-top: 4px; }
+    .modal [hidden] { display: none !important; }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="pl-topo">
+    <div>
+        <h1>Cadastros</h1>
+        <div class="pl-migalhas">Marcas, modelos, categorias, classes e valores das diárias.</div>
+    </div>
+    <button type="button" class="btn btn-verde" id="btn-novo"><i class="bi bi-plus-lg"></i> Cadastrar {{ cfg.singular }}</button>
+</div>
+
+<nav class="abas" aria-label="Tipos de cadastro">
+    {% for chave, titulo in abas %}
+        <a href="{% url 'painel_cadastros' chave %}" class="{% if chave == aba %}ativa{% endif %}">{{ titulo }}</a>
+    {% endfor %}
+</nav>
+
+<form method="get" class="filtros">
+    <div class="campo"><i class="bi bi-search"></i><input type="search" name="q" value="{{ q }}" placeholder="Buscar {{ cfg.titulo|lower }}..." aria-label="Buscar"></div>
+    <button type="submit" class="btn btn-contorno">Buscar</button>
+</form>
+
+<div class="tabela-caixa">
+    <div class="rolagem">
+        <table>
+            <thead>
+                <tr>
+                    {% for coluna in cfg.colunas %}<th>{{ coluna }}</th>{% endfor %}
+                    <th style="text-align: right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for linha in linhas %}
+                    <tr data-valores="{{ linha.json }}" data-url-editar="{{ linha.url_editar }}">
+                        {% for celula in linha.celulas %}<td>{{ celula }}</td>{% endfor %}
+                        <td>
+                            <div class="acoes">
+                                <button type="button" class="icone-btn editar js-editar" aria-label="Editar {{ linha.nome }}"><i class="bi bi-pencil"></i></button>
+                                <form method="post" action="{{ linha.url_excluir }}" class="js-excluir" data-nome="{{ linha.nome }}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="icone-btn excluir" aria-label="Excluir {{ linha.nome }}"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="{{ cfg.colunas|length|add:1 }}" class="vazio">Nada cadastrado por aqui ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="rodape-tabela">
+        <span>Mostrando {{ pagina.start_index }} a {{ pagina.end_index }} de {{ pagina.paginator.count }}</span>
+        {% if pagina.paginator.num_pages > 1 %}
+            <div class="paginas">
+                {% if pagina.has_previous %}<a href="?{{ querystring }}&page={{ pagina.previous_page_number }}" aria-label="Página anterior"><i class="bi bi-chevron-left"></i></a>{% endif %}
+                {% for n in paginas %}
+                    {% if n == reticencias %}<span>…</span>
+                    {% else %}<a href="?{{ querystring }}&page={{ n }}" class="{% if n == pagina.number %}atual{% endif %}">{{ n }}</a>{% endif %}
+                {% endfor %}
+                {% if pagina.has_next %}<a href="?{{ querystring }}&page={{ pagina.next_page_number }}" aria-label="Próxima página"><i class="bi bi-chevron-right"></i></a>{% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Pop-up: cadastrar / editar -->
+<dialog id="modal" class="modal" aria-labelledby="m-titulo"
+        data-abrir="{% if modal %}1{% endif %}" data-url-novo="{{ url_novo }}" data-singular="{{ cfg.singular }}">
+    <form method="post" id="m-form" action="{{ modal.acao|default:url_novo }}">
+        {% csrf_token %}
+        <div class="modal-topo">
+            <h2 id="m-titulo">{{ modal.titulo|default:"Cadastrar" }}</h2>
+            <button type="button" class="modal-x" id="m-fechar" aria-label="Fechar"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="modal-corpo">
+            {% if form.non_field_errors %}<div class="pl-alerta">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+            {% for campo in form %}
+                <div>
+                    <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+                    {{ campo }}
+                    {% for e in campo.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="modal-rodape">
+            <button type="button" class="btn btn-contorno" id="m-cancelar">Cancelar</button>
+            <button type="submit" class="btn btn-verde" id="m-enviar">{{ modal.botao|default:"Cadastrar" }}</button>
+        </div>
+    </form>
+</dialog>
+
+{{ iniciais|json_script:"dados-iniciais" }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var modal = document.getElementById("modal");
+    var form = document.getElementById("m-form");
+    var iniciais = JSON.parse(JSON.parse(document.getElementById("dados-iniciais").textContent));
+    var singular = modal.dataset.singular;
+
+    function $(id) { return document.getElementById(id); }
+
+    function preencher(valores) {
+        Object.keys(iniciais).forEach(function (nome) {
+            var campo = $("id_" + nome);
+            if (!campo) return;
+            var v = valores[nome];
+            campo.value = (v === null || v === undefined) ? "" : v;
+        });
+        modal.querySelectorAll(".erro-campo, .pl-alerta").forEach(function (e) { e.remove(); });
+    }
+
+    $("btn-novo").addEventListener("click", function () {
+        preencher(iniciais);
+        form.action = modal.dataset.urlNovo;
+        $("m-titulo").textContent = "Cadastrar " + singular;
+        $("m-enviar").textContent = "Cadastrar";
+        modal.showModal();
+    });
+
+    document.querySelectorAll(".js-editar").forEach(function (botao) {
+        botao.addEventListener("click", function () {
+            var linha = botao.closest("tr");
+            preencher(JSON.parse(linha.dataset.valores));
+            form.action = linha.dataset.urlEditar;
+            $("m-titulo").textContent = "Editar " + singular;
+            $("m-enviar").textContent = "Salvar alterações";
+            modal.showModal();
+        });
+    });
+
+    document.querySelectorAll(".js-excluir").forEach(function (f) {
+        f.addEventListener("submit", function (e) {
+            if (!confirm("Excluir " + f.dataset.nome + "? Essa ação não pode ser desfeita.")) e.preventDefault();
+        });
+    });
+
+    $("m-fechar").addEventListener("click", function () { modal.close(); });
+    $("m-cancelar").addEventListener("click", function () { modal.close(); });
+    modal.addEventListener("click", function (e) { if (e.target === modal) modal.close(); });
+
+    if (modal.dataset.abrir) modal.showModal();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,318 @@
+{% extends 'locacao/painel/base_painel.html' %}
+
+{% block titulo %}Reservas - Painel NaipiCar{% endblock %}
+
+{% block extra_head %}
+<style>
+    .cartoes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 20px; }
+    .cartao-stat { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 18px; display: flex; gap: 14px; align-items: center; }
+    .cartao-stat .icone { flex: none; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+    .cartao-stat span { font-size: .8125rem; color: var(--suave); display: block; }
+    .cartao-stat strong { font-size: 1.625rem; line-height: 1.1; display: block; }
+    .cartao-stat small { font-size: .6875rem; color: var(--suave); }
+    .i-total { background: #e0efff; color: #1d5fb3; }
+    .i-pendente { background: #fdf0c4; color: #a15c00; }
+    .i-confirmada { background: #d9f2e4; color: #1f8a4c; }
+    .i-atrasado { background: #fde3c8; color: #c2570c; }
+    .i-concluida { background: #ece6fb; color: #6b4fc9; }
+
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+    .layout.aberto { grid-template-columns: minmax(0, 1fr) 400px; }
+
+    .filtros { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .campo { display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; background: #fff; color: var(--suave); }
+    .campo input, .campo select { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: inherit; font-size: .9rem; color: var(--texto); }
+    .filtros .busca { flex: 1; min-width: 220px; }
+    .filtros .select { width: 170px; }
+
+    .tabela-caixa { background: #fff; border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; }
+    .rolagem { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 860px; }
+    th { text-align: left; font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); padding: 14px 16px; border-bottom: 1px solid var(--borda); }
+    td { padding: 14px 16px; border-bottom: 1px solid var(--borda); font-size: .8125rem; vertical-align: middle; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: #f8faf9; }
+    tbody tr.sel { background: var(--verde-claro); }
+    tbody tr:last-child td { border-bottom: 0; }
+    td strong { display: block; font-size: .875rem; }
+    td small { color: var(--suave); font-size: .6875rem; }
+    .veic { display: flex; align-items: center; gap: 10px; }
+    .miniatura { width: 40px; height: 28px; border-radius: 6px; background: #f1f3f5; overflow: hidden; display: flex; align-items: center; justify-content: center; flex: none; color: var(--suave); }
+    .miniatura img { width: 100%; height: 100%; object-fit: contain; }
+    .valor { font-weight: 700; font-size: .875rem; }
+    .ver { color: var(--verde); font-weight: 600; background: none; border: 0; font: inherit; font-weight: 600; cursor: pointer; }
+    .vazio { padding: 40px; text-align: center; color: var(--suave); }
+
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+    .badge.pendente { background: #fff3c4; color: #7a5d00; }
+    .badge.confirmada { background: #d9f2e4; color: #1f6f43; }
+    .badge.atrasado { background: #fde3c8; color: #a8470a; }
+    .badge.concluida { background: #e0efff; color: #1d5fb3; }
+    .badge.cancelada { background: #f7b9b9; color: #8c1f1f; }
+
+    .rodape-tabela { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; color: var(--suave); font-size: .875rem; }
+    .paginas { display: flex; gap: 8px; align-items: center; }
+    .paginas a, .paginas span { min-width: 32px; height: 32px; padding: 0 8px; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+    .paginas a { border: 1px solid var(--borda); background: #fff; }
+    .paginas a.atual { background: var(--verde-escuro); border-color: var(--verde-escuro); color: #fff; }
+
+    /* Painel lateral */
+    .painel { position: sticky; top: 24px; background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 24px; }
+    .painel-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .painel-topo h2 { margin: 0; font-size: 1.25rem; }
+    .fechar { border: 0; background: transparent; color: var(--suave); font-size: 1.2rem; cursor: pointer; border-radius: 50%; width: 32px; height: 32px; }
+    .fechar:hover { background: #eef1f3; color: var(--texto); }
+    .aba { display: inline-block; font-size: .8125rem; font-weight: 600; color: var(--verde); padding-bottom: 6px; border-bottom: 2px solid var(--verde); }
+    .aba-linha { border-bottom: 1px solid var(--borda); margin-bottom: 12px; }
+    .sec { padding: 10px 0; }
+    .sec .rot { display: flex; align-items: center; gap: 8px; font-size: .6875rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--suave); margin-bottom: 6px; }
+    .sec strong { display: block; font-size: .9375rem; }
+    .sec small, .sec .linha { color: var(--suave); font-size: .8125rem; display: block; }
+    .sec .linha b { color: var(--texto); }
+    .sec .com-img { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .sec .com-img img { width: 72px; height: 48px; object-fit: contain; background: #f1f3f5; border-radius: 6px; }
+    .dias { display: inline-block; padding: 2px 10px; border-radius: 6px; background: #e0efff; color: #1d5fb3; font-size: .6875rem; font-weight: 600; }
+    .grande { font-size: 1.5rem !important; }
+    .alterar { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--borda); }
+    .alterar label { display: block; font-size: .8125rem; font-weight: 600; margin-bottom: 6px; }
+    .alterar select { width: 100%; height: 44px; padding: 0 14px; border: 1.5px solid var(--verde); border-radius: 8px; font: inherit; background: #fff; }
+    .alterar .nota { font-size: .75rem; color: var(--suave); margin: 8px 0 0; }
+    .botoes { display: flex; gap: 12px; margin-top: 20px; }
+    .botoes .btn { flex: 1; }
+
+    .fundo { display: none; }
+    @media (max-width: 1100px) { .cartoes { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 1000px) {
+        .layout.aberto { grid-template-columns: minmax(0, 1fr); }
+        .painel { position: fixed; z-index: 50; top: 0; right: 0; bottom: 0; width: min(420px, 100%); border-radius: 14px 0 0 14px; overflow-y: auto; box-shadow: -8px 0 30px rgba(0,0,0,.18); }
+        .fundo:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.4); }
+    }
+    @media (max-width: 640px) { .cartoes { grid-template-columns: 1fr 1fr; } }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="pl-topo">
+    <div>
+        <h1>Reservas</h1>
+        <div class="pl-migalhas">Gerencie e acompanhe todas as reservas da locadora.</div>
+    </div>
+</div>
+
+<div class="cartoes">
+    <div class="cartao-stat"><div class="icone i-total"><i class="bi bi-calendar3"></i></div><div><span>Total de reservas</span><strong>{{ stats.total }}</strong><small>todas as reservas</small></div></div>
+    <div class="cartao-stat"><div class="icone i-pendente"><i class="bi bi-clock"></i></div><div><span>Em análise</span><strong>{{ stats.analise }}</strong><small>aguardando aprovação</small></div></div>
+    <div class="cartao-stat"><div class="icone i-confirmada"><i class="bi bi-check-circle"></i></div><div><span>Reservados</span><strong>{{ stats.reservadas }}</strong><small>reservas confirmadas</small></div></div>
+    <div class="cartao-stat"><div class="icone i-atrasado"><i class="bi bi-exclamation-triangle"></i></div><div><span>Atrasados</span><strong>{{ stats.atrasadas }}</strong><small>não devolvido no prazo</small></div></div>
+    <div class="cartao-stat"><div class="icone i-concluida"><i class="bi bi-check2"></i></div><div><span>Concluídos</span><strong>{{ stats.concluidas }}</strong><small>finalizados</small></div></div>
+</div>
+
+<div class="layout" id="layout">
+    <section>
+        <form method="get" class="filtros">
+            <div class="campo busca"><i class="bi bi-search"></i><input type="search" name="q" value="{{ filtro.q }}" placeholder="Buscar por cliente, veículo ou código de reserva..." aria-label="Buscar reservas"></div>
+            <div class="campo select">
+                <select name="situacao" id="f-situacao" aria-label="Situação">
+                    <option value="">Todas as situações</option>
+                    <option value="pendente" {% if filtro.situacao == "pendente" %}selected{% endif %}>Em análise</option>
+                    <option value="confirmada" {% if filtro.situacao == "confirmada" %}selected{% endif %}>Reservado</option>
+                    <option value="atrasado" {% if filtro.situacao == "atrasado" %}selected{% endif %}>Atrasado</option>
+                    <option value="concluida" {% if filtro.situacao == "concluida" %}selected{% endif %}>Concluído</option>
+                    <option value="cancelada" {% if filtro.situacao == "cancelada" %}selected{% endif %}>Cancelado</option>
+                </select>
+            </div>
+            <div class="campo select">
+                <select name="periodo" id="f-periodo" aria-label="Período">
+                    <option value="">Qualquer período</option>
+                    <option value="hoje" {% if filtro.periodo == "hoje" %}selected{% endif %}>Hoje</option>
+                    <option value="semana" {% if filtro.periodo == "semana" %}selected{% endif %}>Próximos 7 dias</option>
+                    <option value="mes" {% if filtro.periodo == "mes" %}selected{% endif %}>Este mês</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-contorno"><i class="bi bi-sliders"></i> Filtros</button>
+        </form>
+
+        <div class="tabela-caixa">
+            <div class="rolagem">
+                <table>
+                    <thead><tr><th>Reserva</th><th>Cliente</th><th>Veículo</th><th>Período</th><th>Valor</th><th>Situação</th><th>Ações</th></tr></thead>
+                    <tbody>
+                        {% for r in reservas %}
+                            <tr tabindex="0"
+                                data-codigo="RES-{{ r.id|stringformat:'04d' }}"
+                                data-cliente="{{ r.nome_cliente }}"
+                                data-cpf="{{ r.cpf|default:'—' }}"
+                                data-email="{{ r.email_cliente }}"
+                                data-veiculo="{{ r.veiculo.modelo }}"
+                                data-detalhe-veiculo="Placa: {{ r.veiculo.placa|default:'N/D' }} · {{ r.veiculo.ano }}{% if r.veiculo.categoria_classe %} · {{ r.veiculo.categoria_classe.categoria.nome }}{% endif %}"
+                                data-img="{% if r.veiculo.imagem %}{{ r.veiculo.imagem.url }}{% endif %}"
+                                data-retirada="{{ r.data_retirada|date:'d/m/Y' }}"
+                                data-devolucao="{{ r.data_devolucao|date:'d/m/Y' }}"
+                                data-dias="{{ r.dias }} diária{{ r.dias|pluralize }}"
+                                data-total="R$ {{ r.valor_total|floatformat:2 }}"
+                                data-diaria="R$ {{ r.diaria_calculada|floatformat:2 }} por diária"
+                                data-rotulo="{{ r.rotulo }}"
+                                data-classe="{{ r.classe }}"
+                                data-status="{{ r.status }}"
+                                data-opcoes="{{ r.opcoes }}"
+                                data-url="{% url 'painel_reserva_situacao' r.id %}">
+                                <td><strong>RES-{{ r.id|stringformat:"04d" }}</strong><small>{{ r.data_criacao|date:"d/m/Y · H:i" }}</small></td>
+                                <td><strong>{{ r.nome_cliente }}</strong><small>CPF: {{ r.cpf_oculto }}</small></td>
+                                <td>
+                                    <div class="veic">
+                                        <div class="miniatura">{% if r.veiculo.imagem %}<img src="{{ r.veiculo.imagem.url }}" alt="">{% else %}<i class="bi bi-car-front"></i>{% endif %}</div>
+                                        <div><strong>{{ r.veiculo.modelo }}</strong><small>{{ r.veiculo.placa|default:"sem placa" }}</small></div>
+                                    </div>
+                                </td>
+                                <td><strong>{{ r.data_retirada|date:"d/m/Y" }}</strong><small>→ {{ r.data_devolucao|date:"d/m/Y" }} ({{ r.dias }} diária{{ r.dias|pluralize }})</small></td>
+                                <td class="valor">R$ {{ r.valor_total|floatformat:2 }}</td>
+                                <td><span class="badge {{ r.classe }}">{{ r.rotulo }}</span></td>
+                                <td><button type="button" class="ver js-ver">Ver</button></td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="7" class="vazio">Nenhuma reserva encontrada.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="rodape-tabela">
+            <span>Mostrando <strong>{{ pagina.start_index }}</strong> a <strong>{{ pagina.end_index }}</strong> de <strong>{{ pagina.paginator.count }}</strong> reserva{{ pagina.paginator.count|pluralize }}</span>
+            {% if pagina.paginator.num_pages > 1 %}
+                <div class="paginas">
+                    {% if pagina.has_previous %}<a href="?{{ querystring }}&page={{ pagina.previous_page_number }}" aria-label="Página anterior"><i class="bi bi-chevron-left"></i></a>{% endif %}
+                    {% for n in paginas %}
+                        {% if n == reticencias %}<span>…</span>
+                        {% else %}<a href="?{{ querystring }}&page={{ n }}" class="{% if n == pagina.number %}atual{% endif %}">{{ n }}</a>{% endif %}
+                    {% endfor %}
+                    {% if pagina.has_next %}<a href="?{{ querystring }}&page={{ pagina.next_page_number }}" aria-label="Próxima página"><i class="bi bi-chevron-right"></i></a>{% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Painel lateral: abre ao clicar numa reserva -->
+    <aside class="painel" id="painel" aria-label="Detalhes da reserva" hidden>
+        <div class="painel-topo">
+            <h2 id="p-codigo"></h2>
+            <button type="button" class="fechar" id="p-fechar" aria-label="Fechar detalhes"><i class="bi bi-x-circle"></i></button>
+        </div>
+        <div class="aba-linha"><span class="aba">Detalhes</span></div>
+
+        <div class="sec"><div class="rot"><i class="bi bi-person"></i> Cliente</div><strong id="p-cliente"></strong><small>CPF: <span id="p-cpf"></span></small><small id="p-email"></small></div>
+        <div class="sec"><div class="rot"><i class="bi bi-car-front"></i> Veículo</div>
+            <div class="com-img"><div><strong id="p-veiculo"></strong><small id="p-detalhe-veiculo"></small></div><img id="p-img" alt="" hidden></div>
+        </div>
+        <div class="sec"><div class="rot"><i class="bi bi-calendar3"></i> Período de reserva</div>
+            <div class="com-img"><div><span class="linha"><b>Retirada:</b> <span id="p-retirada"></span></span><span class="linha"><b>Devolução:</b> <span id="p-devolucao"></span></span></div><span class="dias" id="p-dias"></span></div>
+        </div>
+        <div class="sec"><div class="rot"><i class="bi bi-wallet2"></i> Valor total</div><strong class="grande" id="p-total"></strong><small id="p-diaria"></small></div>
+        <div class="sec"><div class="rot"><i class="bi bi-check-circle"></i> Situação atual</div><span class="badge" id="p-badge"></span></div>
+
+        <form method="post" class="alterar" id="p-form">
+            {% csrf_token %}
+            <input type="hidden" name="voltar" value="{{ request.get_full_path }}">
+            <label for="p-status">Alterar situação</label>
+            <select name="status" id="p-status"></select>
+            <p class="nota" id="p-nota"></p>
+            <div class="botoes">
+                <button type="button" class="btn btn-contorno" id="p-cancelar">Cancelar</button>
+                <button type="submit" class="btn btn-verde" id="p-salvar">Salvar alterações</button>
+            </div>
+        </form>
+    </aside>
+</div>
+<div class="fundo" id="fundo" hidden></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var layout = document.getElementById("layout");
+    var painel = document.getElementById("painel");
+    var fundo = document.getElementById("fundo");
+    var linhas = document.querySelectorAll("tbody tr[data-codigo]");
+    var ativa = null;
+    var ROTULOS = { "Pendente": "Em análise", "Confirmada": "Reservado", "Concluída": "Concluído", "Cancelada": "Cancelado" };
+
+    function $(id) { return document.getElementById(id); }
+
+    function abrir(linha) {
+        var d = linha.dataset;
+        $("p-codigo").textContent = d.codigo;
+        $("p-cliente").textContent = d.cliente;
+        $("p-cpf").textContent = d.cpf;
+        $("p-email").textContent = d.email;
+        $("p-veiculo").textContent = d.veiculo;
+        $("p-detalhe-veiculo").textContent = d.detalheVeiculo;
+        $("p-retirada").textContent = d.retirada;
+        $("p-devolucao").textContent = d.devolucao;
+        $("p-dias").textContent = d.dias;
+        $("p-total").textContent = d.total;
+        $("p-diaria").textContent = d.diaria;
+
+        var badge = $("p-badge");
+        badge.textContent = d.rotulo;
+        badge.className = "badge " + d.classe;
+
+        var img = $("p-img");
+        if (d.img) { img.src = d.img; img.hidden = false; } else { img.hidden = true; }
+
+        // Só aparecem as situações para as quais esta reserva pode avançar
+        var select = $("p-status");
+        select.innerHTML = "";
+        d.opcoes.split("|").forEach(function (valor) {
+            var op = document.createElement("option");
+            op.value = valor;
+            op.textContent = ROTULOS[valor] || valor;
+            if (valor === d.status) op.selected = true;
+            select.appendChild(op);
+        });
+        var final = d.opcoes.split("|").length === 1;
+        select.disabled = final;
+        $("p-salvar").hidden = final;
+        $("p-nota").textContent = final
+            ? "Esta reserva já foi finalizada e não pode mais ser alterada."
+            : (d.rotulo === "Atrasado" ? "Esta reserva está atrasada. Marque como Concluído quando o veículo for devolvido." : "");
+        $("p-form").action = d.url;
+
+        linhas.forEach(function (l) { l.classList.toggle("sel", l === linha); });
+        layout.classList.add("aberto");
+        painel.hidden = false;
+        fundo.hidden = false;
+        ativa = linha;
+        $("p-fechar").focus();
+    }
+
+    function fechar() {
+        painel.hidden = true;
+        fundo.hidden = true;
+        layout.classList.remove("aberto");
+        linhas.forEach(function (l) { l.classList.remove("sel"); });
+        if (ativa) ativa.focus();
+        ativa = null;
+    }
+
+    linhas.forEach(function (linha) {
+        linha.addEventListener("click", function () { abrir(linha); });
+        linha.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(linha); }
+        });
+    });
+    $("p-fechar").addEventListener("click", fechar);
+    $("p-cancelar").addEventListener("click", fechar);
+    fundo.addEventListener("click", fechar);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !painel.hidden) fechar(); });
+
+    // Cancelar a reserva pede confirmação
+    $("p-form").addEventListener("submit", function (e) {
+        if ($("p-status").value === "Cancelada" && !confirm("Cancelar esta reserva? Essa ação não pode ser desfeita.")) e.preventDefault();
+    });
+
+    ["f-situacao", "f-periodo"].forEach(function (id) {
+        $(id).addEventListener("change", function () { this.form.submit(); });
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends 'locacao/painel/base_painel.html' %}
+
+{% block titulo %}Dashboard - Painel NaipiCar{% endblock %}
+
+{% block extra_head %}
+<style>
+    .cartoes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    .indicador { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 18px 24px 22px; }
+    .indicador::before { content: ""; display: block; height: 3px; border-radius: 2px; background: var(--verde-escuro); margin-bottom: 16px; }
+    .indicador.alerta::before { background: #e5484d; }
+    .indicador span { display: block; font-size: .75rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--suave); }
+    .indicador strong { display: block; font-size: 2.5rem; line-height: 1.2; margin-top: 8px; }
+    .indicador.alerta strong { color: #e5484d; }
+
+    .blocos { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    .bloco { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 24px 28px 28px; }
+    .bloco::before { content: ""; display: block; height: 3px; border-radius: 2px; background: var(--verde-escuro); margin-bottom: 24px; }
+    .bloco h2 { margin: 0 0 20px; font-size: 1.25rem; font-weight: 700; color: var(--verde-escuro); }
+
+    .rolagem { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 560px; }
+    th { text-align: left; font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); padding: 10px 8px 12px; border-bottom: 2px solid var(--borda); }
+    td { padding: 14px 8px; border-bottom: 1px solid var(--borda); font-size: .875rem; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .tag { display: inline-block; padding: 3px 12px; border-radius: 6px; font-size: .75rem; font-weight: 600; }
+    .tag.retirada { background: #fdf0c4; color: #a15c00; }
+    .tag.devolucao { background: #d9f2e4; color: #1f6f43; }
+    .tag.atrasado { background: #fbdcdc; color: #c0392b; }
+    .st { color: var(--suave); }
+    .st.atrasado { color: #c0392b; font-weight: 600; }
+    .mais { margin: 14px 0 0; font-size: .8125rem; color: var(--suave); }
+    .mais a { color: var(--verde); font-weight: 600; }
+
+    .barra-linha { margin-bottom: 18px; font-size: .875rem; }
+    .barra { height: 12px; border-radius: 6px; background: #e3e8ec; margin-top: 6px; overflow: hidden; }
+    .barra > div { height: 100%; border-radius: 6px; background: #1db5a0; min-width: 4px; }
+    .barra-linha:first-of-type .barra > div { background: var(--verde-escuro); }
+    .barra-linha:last-of-type .barra > div { background: #8ee6d6; }
+    .destaque { border-top: 1px solid var(--borda); margin-top: 24px; padding-top: 20px; font-size: .875rem; }
+    .destaque strong { display: block; margin-bottom: 6px; }
+    .destaque span { color: var(--suave); }
+    .vazio { color: var(--suave); font-size: .875rem; padding: 12px 0; }
+
+    @media (max-width: 1100px) { .cartoes { grid-template-columns: 1fr 1fr; } .blocos { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) { .cartoes { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="pl-topo">
+    <div>
+        <h1>Dashboard</h1>
+        <div class="pl-migalhas"><a href="{% url 'index' %}">Início</a> &nbsp;›&nbsp; <strong>Dashboard</strong></div>
+    </div>
+</div>
+
+<div class="cartoes">
+    <div class="indicador"><span>Veículos reservados</span><strong>{{ reservados }}</strong></div>
+    <div class="indicador"><span>Taxa de ocupação</span><strong>{{ taxa }}%</strong></div>
+    <div class="indicador {% if atrasos %}alerta{% endif %}"><span>Alerta de atrasos</span><strong>{{ atrasos }}</strong></div>
+    <div class="indicador"><span>Receita estimada</span><strong>R$ {{ receita|floatformat:"0g" }}</strong></div>
+</div>
+
+<div class="blocos">
+    <section class="bloco">
+        <h2>Radar do Dia ({{ hoje|date:"d/m/Y" }})</h2>
+        {% if radar %}
+            <div class="rolagem">
+                <table>
+                    <thead><tr><th>Cliente</th><th>Veículo</th><th>Ação programada</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for item in radar %}
+                            <tr>
+                                <td>{{ item.cliente }}</td>
+                                <td>{{ item.veiculo }}</td>
+                                <td><span class="tag {{ item.classe }}">{{ item.acao }}</span></td>
+                                <td class="st {{ item.classe }}">{{ item.status }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if total_radar > radar|length %}
+                <p class="mais">Mostrando {{ radar|length }} de {{ total_radar }}. <a href="{% url 'painel_reservas' %}?periodo=hoje">Ver todas as reservas de hoje</a></p>
+            {% endif %}
+        {% else %}
+            <p class="vazio">Nenhuma retirada, devolução ou atraso para hoje.</p>
+        {% endif %}
+    </section>
+
+    <section class="bloco">
+        <h2>Top Categorias (Demanda)</h2>
+        {% for c in categorias %}
+            <div class="barra-linha">
+                {{ c.nome }} ({{ c.pct }}% das reservas)
+                <div class="barra" role="img" aria-label="{{ c.nome }}: {{ c.pct }}%"><div style="width: {{ c.pct }}%;"></div></div>
+            </div>
+        {% empty %}
+            <p class="vazio">Sem reservas nos últimos 30 dias.</p>
+        {% endfor %}
+
+        {% if mais_alugado %}
+            <div class="destaque">
+                <strong>Veículo mais alugado:</strong>
+                <span>{{ mais_alugado.veiculo__modelo__marca__nome }} {{ mais_alugado.veiculo__modelo__nome }} ({{ mais_alugado.n }} reserva{{ mais_alugado.n|pluralize }} nos últimos 30 dias)</span>
+            </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

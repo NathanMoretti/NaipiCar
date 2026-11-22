@@ -128,7 +128,7 @@
     <div class="rolagem">
         <table>
             <thead>
-                <tr><th>Veículo</th><th>Placa</th><th>Categoria</th><th>Ano</th><th>Diária</th><th>Status</th><th style="text-align: right;">Ações</th></tr>
+                <tr><th>Veículo</th><th>Categoria</th><th>Placa</th><th>Ano</th><th>Diária</th><th>Status</th><th style="text-align: right;">Ações</th></tr>
             </thead>
             <tbody>
                 {% for v in veiculos %}
@@ -149,8 +149,8 @@
                                 <div><strong>{{ v.modelo }}</strong><small>{{ v.categoria_classe.classe.nome|default:"Sem classe" }}</small></div>
                             </div>
                         </td>
+                        <td><i class="bi bi-car-front" style="color: var(--verde); margin-right: 6px;"></i>{{ v.categoria_classe.categoria.nome|default:"—" }}</td>
                         <td>{{ v.placa|default:"—" }}</td>
-                        <td>{{ v.categoria_classe.categoria.nome|default:"—" }}</td>
                         <td>{{ v.ano }}</td>
                         <td><strong>R$ {{ v.diaria|floatformat:2 }}</strong></td>
                         <td><span class="badge {{ v.classe }}">{{ v.situacao }}</span></td>

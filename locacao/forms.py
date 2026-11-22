@@ -2,10 +2,10 @@ import re
 from datetime import date
 
 from django import forms
-from django.core.exceptions import ValidationError
+from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.core.files.uploadedfile import UploadedFile
 
-from .models import CategoriaClasse, ModeloCarro, Veiculo
+from .models import Categoria, CategoriaClasse, ClasseCarro, Marca, ModeloCarro, Veiculo
 
 TAMANHO_MAXIMO_FOTO = 5 * 1024 * 1024  # 5 MB
 FORMATOS_FOTO = ("JPEG", "PNG")
@@ -107,3 +107,122 @@ class VeiculoForm(forms.ModelForm):
             if formato not in FORMATOS_FOTO:
                 raise ValidationError("Envie a foto em PNG ou JPG.")
         return imagem
+
+
+# ---------------------------------------------------------------------------
+# Cadastros auxiliares do painel
+# ---------------------------------------------------------------------------
+class _NomeUnicoMixin:
+    """Evita nomes repetidos sem diferenciar maiúsculas de minúsculas."""
+
+    mensagem_duplicado = "Já existe um registro com esse nome."
+
+    def clean_nome(self):
+        nome = " ".join((self.cleaned_data.get("nome") or "").split())
+        if not nome:
+            raise ValidationError("Informe o nome.")
+        existe = self._meta.model.objects.filter(nome__iexact=nome).exclude(pk=self.instance.pk)
+        if existe.exists():
+            raise ValidationError(self.mensagem_duplicado)
+        return nome
+
+
+class MarcaForm(_NomeUnicoMixin, forms.ModelForm):
+    mensagem_duplicado = "Já existe uma marca com esse nome."
+
+    class Meta:
+        model = Marca
+        fields = ["nome"]
+        labels = {"nome": "Nome da marca"}
+        widgets = {"nome": forms.TextInput(attrs={"placeholder": "Ex: Toyota"})}
+
+
+class CategoriaForm(_NomeUnicoMixin, forms.ModelForm):
+    mensagem_duplicado = "Já existe uma categoria com esse nome."
+
+    class Meta:
+        model = Categoria
+        fields = ["nome", "descricao"]
+        labels = {"nome": "Nome da categoria", "descricao": "Descrição (opcional)"}
+        widgets = {
+            "nome": forms.TextInput(attrs={"placeholder": "Ex: SUV"}),
+            "descricao": forms.Textarea(attrs={"rows": 3, "placeholder": "Ex: Mais espaço e conforto para sua aventura."}),
+        }
+
+
+class ClasseCarroForm(_NomeUnicoMixin, forms.ModelForm):
+    mensagem_duplicado = "Já existe uma classe com esse nome."
+
+    class Meta:
+        model = ClasseCarro
+        fields = ["nome"]
+        labels = {"nome": "Nome da classe"}
+        widgets = {"nome": forms.TextInput(attrs={"placeholder": "Ex: Classe A"})}
+
+
+class ModeloCarroForm(forms.ModelForm):
+    class Meta:
+        model = ModeloCarro
+        fields = ["marca", "nome", "assentos", "malas"]
+        labels = {"marca": "Marca", "nome": "Nome do modelo", "assentos": "Assentos", "malas": "Malas"}
+        widgets = {
+            "nome": forms.TextInput(attrs={"placeholder": "Ex: Compass"}),
+            "assentos": forms.NumberInput(attrs={"min": 1, "max": 15}),
+            "malas": forms.NumberInput(attrs={"min": 0, "max": 10}),
+        }
+        error_messages = {"marca": {"required": "Escolha a marca."}}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["marca"].queryset = Marca.objects.order_by("nome")
+        self.fields["marca"].empty_label = "Selecione a marca"
+
+    def clean_nome(self):
+        return " ".join((self.cleaned_data.get("nome") or "").split())
+
+    def clean_assentos(self):
+        n = self.cleaned_data.get("assentos")
+        if n is not None and not 1 <= n <= 15:
+            raise ValidationError("Informe entre 1 e 15 assentos.")
+        return n
+
+    def clean_malas(self):
+        n = self.cleaned_data.get("malas")
+        if n is not None and not 0 <= n <= 10:
+            raise ValidationError("Informe entre 0 e 10 malas.")
+        return n
+
+    def clean(self):
+        dados = super().clean()
+        marca, nome = dados.get("marca"), dados.get("nome")
+        if marca and nome:
+            repetido = ModeloCarro.objects.filter(marca=marca, nome__iexact=nome).exclude(pk=self.instance.pk)
+            if repetido.exists():
+                self.add_error("nome", "Essa marca já tem um modelo com esse nome.")
+        return dados
+
+
+class CategoriaClasseForm(forms.ModelForm):
+    class Meta:
+        model = CategoriaClasse
+        fields = ["categoria", "classe", "daily_rate"]
+        labels = {"categoria": "Categoria", "classe": "Classe", "daily_rate": "Valor da diária (R$)"}
+        widgets = {"daily_rate": forms.NumberInput(attrs={"min": 0, "step": "0.01", "placeholder": "Ex: 150,00"})}
+        error_messages = {
+            "categoria": {"required": "Escolha a categoria."},
+            "classe": {"required": "Escolha a classe."},
+            NON_FIELD_ERRORS: {"unique_together": "Essa combinação de categoria e classe já existe. Edite o valor dela."},
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["categoria"].queryset = Categoria.objects.order_by("nome")
+        self.fields["categoria"].empty_label = "Selecione a categoria"
+        self.fields["classe"].queryset = ClasseCarro.objects.order_by("nome")
+        self.fields["classe"].empty_label = "Selecione a classe"
+
+    def clean_daily_rate(self):
+        valor = self.cleaned_data.get("daily_rate")
+        if valor is not None and valor <= 0:
+            raise ValidationError("A diária deve ser maior que zero.")
+        return valor
