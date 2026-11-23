@@ -43,6 +43,18 @@
         .nc-menu a.ativo { font-weight: 700; color: var(--verde-escuro); }
         .nc-acoes { display: flex; gap: 12px; align-items: center; }
 
+        /* Menu do usuário */
+        .nc-usuario { position: relative; }
+        .nc-usuario summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; border: 1px solid var(--borda); border-radius: 999px; background: #f3f5f7; cursor: pointer; font-weight: 500; }
+        .nc-usuario summary::-webkit-details-marker { display: none; }
+        .nc-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--verde); color: #fff; font-weight: 700; font-size: .8125rem; display: flex; align-items: center; justify-content: center; overflow: hidden; flex: none; }
+        .nc-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .nc-usuario-menu { position: absolute; right: 0; top: calc(100% + 8px); min-width: 230px; background: #fff; border: 1px solid var(--borda); border-radius: 12px; box-shadow: 0 10px 30px rgba(15, 40, 35, .15); padding: 8px; z-index: 30; display: grid; gap: 2px; }
+        .nc-usuario-menu a, .nc-usuario-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-radius: 8px; background: none; font: inherit; font-size: .9375rem; color: var(--texto); text-decoration: none; text-align: left; cursor: pointer; }
+        .nc-usuario-menu a:hover, .nc-usuario-menu button:hover { background: var(--fundo); color: var(--verde); }
+        .nc-usuario-menu form { margin: 0; }
+        .nc-usuario-menu hr { border: 0; border-top: 1px solid var(--borda); margin: 6px 0; }
+
         /* Faixa de título com a busca (usada na home e em veículos) */
         .nc-faixa { color: #fff; background: linear-gradient(90deg, #0a4536, #1b6b57); padding: 48px 0 120px; }
         .nc-faixa h1 { margin: 0; font-size: 2.25rem; font-weight: 700; }
@@ -119,21 +131,26 @@
 
             <div class="nc-acoes">
                 {% if user.is_authenticated %}
-                    <span>Olá, {{ user.first_name|default:"cliente" }}</span>
-                    {% if user.is_staff %}
-                        <a href="{% url 'painel' %}" class="nc-btn nc-btn-verde nc-btn-sm">
-                            <i class="bi bi-gear"></i> Painel admin
-                        </a>
-                    {% endif %}
-                    <form method="post" action="{% url 'logout' %}" class="m-0">
-                        {% csrf_token %}
-                        <button type="submit" class="nc-btn nc-btn-contorno nc-btn-sm">
-                            <i class="bi bi-box-arrow-right"></i> Sair
-                        </button>
-                    </form>
+                    <details class="nc-usuario" id="menu-usuario">
+                        <summary aria-label="Menu do usuário">
+                            <span class="nc-avatar">{% if user.profile_photo %}<img src="{{ user.profile_photo.url }}" alt="">{% else %}{{ user.first_name|slice:":1"|upper }}{% endif %}</span>
+                            <span class="nc-usuario-nome">{{ user.full_name|default:user.first_name }}</span>
+                            <i class="bi bi-chevron-down"></i>
+                        </summary>
+                        <div class="nc-usuario-menu">
+                            <button type="button" data-abrir-perfil><i class="bi bi-person-gear"></i> Editar perfil</button>
+                            <a href="{% url 'minhas_reservas' %}"><i class="bi bi-calendar3"></i> Minhas reservas</a>
+                            {% if user.is_staff %}<a href="{% url 'painel' %}"><i class="bi bi-speedometer2"></i> Painel admin</a>{% endif %}
+                            <hr>
+                            <form method="post" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button type="submit"><i class="bi bi-box-arrow-right"></i> Sair</button>
+                            </form>
+                        </div>
+                    </details>
                 {% else %}
-                    <a href="{% url 'login' %}" class="nc-btn nc-btn-verde"><i class="bi bi-person"></i> Entrar</a>
-                    <a href="{% url 'cadastro' %}" class="nc-btn nc-btn-contorno">Criar Conta</a>
+                    <a href="/login/" class="nc-btn nc-btn-verde"><i class="bi bi-person"></i> Entrar</a>
+                    <a href="/cadastro/" class="nc-btn nc-btn-contorno">Criar Conta</a>
                 {% endif %}
             </div>
         </div>
@@ -143,7 +160,7 @@
         {% if messages %}
             <div class="nc-container mt-3">
                 {% for message in messages %}
-                    <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+                    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %}" role="alert">{{ message }}</div>
                 {% endfor %}
             </div>
         {% endif %}
@@ -177,6 +194,19 @@
         </div>
         <div class="nc-direitos">© {% now "Y" %} NaipiCar. Todos os direitos reservados.</div>
     </footer>
+
+    {% if user.is_authenticated %}
+        {% include 'locacao/_perfil_modal.html' %}
+        <script>
+            // Fecha o menu do usuário ao clicar fora ou apertar Esc
+            (function () {
+                var menu = document.getElementById("menu-usuario");
+                if (!menu) return;
+                document.addEventListener("click", function (e) { if (!menu.contains(e.target)) menu.removeAttribute("open"); });
+                document.addEventListener("keydown", function (e) { if (e.key === "Escape") menu.removeAttribute("open"); });
+            })();
+        </script>
+    {% endif %}
 
     {% block scripts %}{% endblock %}
 </body>

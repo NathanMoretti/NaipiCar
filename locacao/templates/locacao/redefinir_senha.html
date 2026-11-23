@@ -1,0 +1,34 @@
+{% extends 'locacao/auth_base.html' %}
+{% load static %}
+
+{% block titulo %}Nova senha - NaipiCar{% endblock %}
+
+{% block foto %}{% static 'img/auth-cadastro.png' %}{% endblock %}
+{% block layout %}invertido{% endblock %}
+{% block painel_classe %}topo{% endblock %}
+
+{% block painel %}
+    <h2>Crie uma senha <em>nova e segura.</em></h2>
+    <p>Depois é só entrar e continuar sua viagem.</p>
+{% endblock %}
+
+{% block formulario %}
+    {% if validlink %}
+        <h1>Criar nova senha</h1>
+        <p class="auth-sub">Escolha uma senha que você ainda não usou aqui.</p>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="auth-grade">
+                {% include 'contas/_campo_auth.html' with field=form.new_password1 icon='bi-lock' senha=True %}
+                {% include 'contas/_campo_auth.html' with field=form.new_password2 icon='bi-lock' senha=True %}
+            </div>
+            <div class="auth-dica">Use 8+ caracteres, letra maiúscula, número e símbolo.</div>
+            <button type="submit" class="auth-botao">Salvar nova senha</button>
+        </form>
+    {% else %}
+        <h1>Link inválido</h1>
+        <p class="auth-sub">Este link expirou ou já foi usado. Peça um novo para continuar.</p>
+        <a href="{% url 'recuperar_senha' %}" class="auth-botao" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: #fff;">Pedir novo link</a>
+    {% endif %}
+{% endblock %}

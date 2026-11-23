@@ -26,8 +26,11 @@
             {% include 'contas/_campo_auth.html' with field=form.username icon='bi-envelope' %}
             {% include 'contas/_campo_auth.html' with field=form.password icon='bi-lock' senha=True %}
         </div>
+        <div style="text-align: right; margin-top: 10px; font-size: .875rem;">
+            <a href="{% url 'recuperar_senha' %}">Esqueceu a senha?</a>
+        </div>
 
-        <button type="submit" class="auth-botao">Entrar</button>
+        <button type="submit" class="auth-botao" style="margin-top: 16px;">Entrar</button>
     </form>
 
     <div class="auth-ou">ou</div>

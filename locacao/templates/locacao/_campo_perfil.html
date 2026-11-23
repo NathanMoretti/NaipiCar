@@ -1,0 +1,12 @@
+<div class="pf-col {{ col|default:'c12' }}">
+    <label for="pf-{{ nome }}">{{ rotulo }}</label>
+    <div class="pf-campo{% if readonly %} bloqueado{% endif %}">
+        <i class="bi {{ icone }}"></i>
+        <input type="{{ tipo|default:'text' }}" id="pf-{{ nome }}" {% if not readonly %}name="{{ nome }}"{% endif %} value="{{ valor|default:'' }}"
+               {% if maxlength %}maxlength="{{ maxlength }}"{% endif %} {% if readonly %}readonly tabindex="-1" aria-describedby="pf-dica-{{ nome }}"{% endif %}
+               autocomplete="{{ auto|default:'off' }}">
+        {% if senha %}<button type="button" class="pf-olho" data-alvo="pf-{{ nome }}" aria-label="Mostrar senha"><i class="bi bi-eye"></i></button>{% endif %}
+    </div>
+    {% if readonly %}<div class="pf-dica" id="pf-dica-{{ nome }}">O CPF não pode ser alterado.</div>{% endif %}
+    <div class="pf-erro" data-erro="{{ nome }}"></div>
+</div>

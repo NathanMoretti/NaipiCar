@@ -1,0 +1,22 @@
+{% extends 'locacao/auth_base.html' %}
+{% load static %}
+
+{% block titulo %}Verifique seu e-mail - NaipiCar{% endblock %}
+
+{% block foto %}{% static 'img/auth-login.png' %}{% endblock %}
+
+{% block painel %}
+    <h2>Quase lá. <em>Confira o seu e-mail.</em></h2>
+    <p>O link para criar a nova senha vale por 1 hora.</p>
+{% endblock %}
+
+{% block formulario %}
+    <h1>Verifique seu e-mail</h1>
+    <p class="auth-sub">
+        Se existir uma conta com o e-mail informado, enviamos um link para criar uma nova senha.
+        Se não encontrar a mensagem, olhe também a caixa de spam.
+    </p>
+    <a href="{% url 'login' %}" class="auth-botao" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: #fff;">Voltar para o login</a>
+    <div class="auth-ou">ou</div>
+    <div class="auth-rodape">Não chegou? <a href="{% url 'recuperar_senha' %}">Pedir de novo</a></div>
+{% endblock %}

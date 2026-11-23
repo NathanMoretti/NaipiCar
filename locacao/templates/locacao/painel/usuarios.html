@@ -1,0 +1,336 @@
+{% extends 'locacao/painel/base_painel.html' %}
+
+{% block titulo %}Usuários - Painel NaipiCar{% endblock %}
+
+{% block extra_head %}
+<style>
+    .cartoes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    .cartao-stat { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 18px; display: flex; gap: 14px; align-items: center; }
+    .cartao-stat .icone { flex: none; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+    .cartao-stat span { font-size: .8125rem; color: var(--suave); display: block; }
+    .cartao-stat strong { font-size: 1.625rem; line-height: 1.1; display: block; }
+    .i-total { background: #e0efff; color: #1d5fb3; }
+    .i-clientes { background: #d9f2e4; color: #1f8a4c; }
+    .i-admins { background: #ece6fb; color: #6b4fc9; }
+    .i-inativos { background: #fbdcdc; color: #c0392b; }
+
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+    .layout.aberto { grid-template-columns: minmax(0, 1fr) 400px; }
+
+    .filtros { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .campo { display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; background: #fff; color: var(--suave); }
+    .campo input, .campo select { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: inherit; font-size: .9rem; color: var(--texto); }
+    .filtros .busca { flex: 1; min-width: 220px; }
+    .filtros .select { width: 170px; }
+
+    .tabela-caixa { background: #fff; border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; }
+    .rolagem { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th { text-align: left; font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); padding: 14px 16px; border-bottom: 1px solid var(--borda); }
+    td { padding: 14px 16px; border-bottom: 1px solid var(--borda); font-size: .8125rem; vertical-align: middle; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: #f8faf9; }
+    tbody tr.sel { background: var(--verde-claro); }
+    tbody tr:last-child td { border-bottom: 0; }
+    td strong { display: block; font-size: .875rem; }
+    td small { color: var(--suave); font-size: .6875rem; }
+    .quem { display: flex; align-items: center; gap: 12px; }
+    .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--verde); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; overflow: hidden; flex: none; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .ver { color: var(--verde); font-weight: 600; background: none; border: 0; font: inherit; font-weight: 600; cursor: pointer; }
+    .vazio { padding: 40px; text-align: center; color: var(--suave); }
+
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+    .badge.ativo { background: #d9f2e4; color: #1f6f43; }
+    .badge.inativo { background: #eef0f2; color: var(--suave); }
+    .badge.pendente { background: #fff3c4; color: #7a5d00; }
+    .badge.bloqueado { background: #f7b9b9; color: #8c1f1f; }
+    .badge.admin { background: #ece6fb; color: #5a3fb5; }
+    .badge.cliente { background: #e0efff; color: #1d5fb3; }
+
+    .rodape-tabela { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; color: var(--suave); font-size: .875rem; }
+    .paginas { display: flex; gap: 8px; align-items: center; }
+    .paginas a, .paginas span { min-width: 32px; height: 32px; padding: 0 8px; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+    .paginas a { border: 1px solid var(--borda); background: #fff; }
+    .paginas a.atual { background: var(--verde-escuro); border-color: var(--verde-escuro); color: #fff; }
+
+    .painel { position: sticky; top: 24px; background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 24px; max-height: calc(100vh - 48px); overflow-y: auto; }
+    .painel-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .painel-topo h2 { margin: 0; font-size: 1.125rem; }
+    .fechar { border: 0; background: transparent; color: var(--suave); font-size: 1.2rem; cursor: pointer; border-radius: 50%; width: 32px; height: 32px; }
+    .fechar:hover { background: #eef1f3; color: var(--texto); }
+    .perfil { display: flex; align-items: center; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--borda); }
+    .perfil .avatar { width: 56px; height: 56px; font-size: 1.25rem; }
+    .perfil strong { display: block; font-size: 1.0625rem; }
+    .sec { padding: 12px 0; }
+    .sec .rot { display: flex; align-items: center; gap: 8px; font-size: .6875rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--suave); margin-bottom: 6px; }
+    .sec .linha { display: block; font-size: .875rem; }
+    .sec .suave { color: var(--suave); font-size: .8125rem; }
+    .res { padding: 8px 0; border-bottom: 1px dashed var(--borda); font-size: .8125rem; display: flex; justify-content: space-between; gap: 10px; }
+    .res:last-child { border-bottom: 0; }
+    .res small { display: block; color: var(--suave); }
+    .alterar { margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--borda); }
+    .alterar label { display: block; font-size: .8125rem; font-weight: 600; margin: 10px 0 6px; }
+    .alterar select { width: 100%; height: 42px; padding: 0 12px; border: 1.5px solid var(--verde); border-radius: 8px; font: inherit; background: #fff; }
+    .alterar select:disabled { border-color: var(--borda); background: #f3f5f7; }
+    .nota { font-size: .75rem; color: var(--suave); margin: 8px 0 0; }
+    .botoes { display: flex; gap: 12px; margin-top: 16px; }
+    .botoes .btn { flex: 1; }
+
+    .fundo { display: none; }
+    @media (max-width: 1100px) { .cartoes { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 1000px) {
+        .layout.aberto { grid-template-columns: minmax(0, 1fr); }
+        .painel { position: fixed; z-index: 50; top: 0; right: 0; bottom: 0; width: min(420px, 100%); max-height: none; border-radius: 14px 0 0 14px; box-shadow: -8px 0 30px rgba(0,0,0,.18); }
+        .fundo:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.4); }
+    }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="pl-topo">
+    <div>
+        <h1>Usuários</h1>
+        <div class="pl-migalhas">Clientes e administradores cadastrados na NaipiCar.</div>
+    </div>
+</div>
+
+<div class="cartoes">
+    <div class="cartao-stat"><div class="icone i-total"><i class="bi bi-people"></i></div><div><span>Total de usuários</span><strong>{{ stats.total }}</strong></div></div>
+    <div class="cartao-stat"><div class="icone i-clientes"><i class="bi bi-person-check"></i></div><div><span>Clientes</span><strong>{{ stats.clientes }}</strong></div></div>
+    <div class="cartao-stat"><div class="icone i-admins"><i class="bi bi-shield-check"></i></div><div><span>Administradores</span><strong>{{ stats.admins }}</strong></div></div>
+    <div class="cartao-stat"><div class="icone i-inativos"><i class="bi bi-person-slash"></i></div><div><span>Contas não ativas</span><strong>{{ stats.inativos }}</strong></div></div>
+</div>
+
+<div class="layout" id="layout" data-admin="{{ ADMIN }}">
+    <section>
+        <form method="get" class="filtros">
+            <div class="campo busca"><i class="bi bi-search"></i><input type="search" name="q" value="{{ filtro.q }}" placeholder="Buscar por nome, e-mail, CPF ou telefone..." aria-label="Buscar usuários"></div>
+            <div class="campo select">
+                <select name="perfil" id="f-perfil" aria-label="Perfil">
+                    <option value="">Todos os perfis</option>
+                    <option value="cliente" {% if filtro.perfil == "cliente" %}selected{% endif %}>Clientes</option>
+                    <option value="admin" {% if filtro.perfil == "admin" %}selected{% endif %}>Administradores</option>
+                </select>
+            </div>
+            <div class="campo select">
+                <select name="situacao" id="f-situacao" aria-label="Situação">
+                    <option value="">Todas as situações</option>
+                    <option value="ACTIVE" {% if filtro.situacao == "ACTIVE" %}selected{% endif %}>Ativo</option>
+                    <option value="INACTIVE" {% if filtro.situacao == "INACTIVE" %}selected{% endif %}>Inativo</option>
+                    <option value="PENDING" {% if filtro.situacao == "PENDING" %}selected{% endif %}>Pendente</option>
+                    <option value="BLOCKED" {% if filtro.situacao == "BLOCKED" %}selected{% endif %}>Bloqueado</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-contorno"><i class="bi bi-sliders"></i> Filtros</button>
+        </form>
+
+        <div class="tabela-caixa">
+            <div class="rolagem">
+                <table>
+                    <thead><tr><th>Usuário</th><th>CPF</th><th>Telefone</th><th>Perfil</th><th>Situação</th><th>Reservas</th><th>Ações</th></tr></thead>
+                    <tbody>
+                        {% for u in usuarios %}
+                            <tr tabindex="0"
+                                data-nome="{{ u.full_name }}"
+                                data-inicial="{{ u.first_name|slice:':1'|upper }}"
+                                data-foto="{% if u.profile_photo %}{{ u.profile_photo.url }}{% endif %}"
+                                data-email="{{ u.email }}"
+                                data-telefone="{{ u.phone }}"
+                                data-cpf="{{ u.cpf }}"
+                                data-endereco="{{ u.endereco_texto }}"
+                                data-perfil-rotulo="{% if u.eh_admin %}Administrador{% else %}Cliente{% endif %}"
+                                data-perfil="{{ u.profile_type }}"
+                                data-status="{{ u.status }}"
+                                data-rotulo="{{ u.rotulo }}"
+                                data-classe="{{ u.classe }}"
+                                data-reservas="{{ u.n_reservas }}"
+                                data-recentes="{{ u.recentes }}"
+                                data-eu="{% if u.eu %}1{% endif %}"
+                                data-url="{% url 'painel_usuario_atualizar' u.id %}">
+                                <td>
+                                    <div class="quem">
+                                        <div class="avatar">{% if u.profile_photo %}<img src="{{ u.profile_photo.url }}" alt="">{% else %}{{ u.first_name|slice:":1"|upper }}{% endif %}</div>
+                                        <div><strong>{{ u.full_name }}{% if u.eu %} <small>(você)</small>{% endif %}</strong><small>{{ u.email }}</small></div>
+                                    </div>
+                                </td>
+                                <td>{{ u.cpf_oculto }}</td>
+                                <td>{{ u.phone }}</td>
+                                <td><span class="badge {% if u.eh_admin %}admin{% else %}cliente{% endif %}">{% if u.eh_admin %}Administrador{% else %}Cliente{% endif %}</span></td>
+                                <td><span class="badge {{ u.classe }}">{{ u.rotulo }}</span></td>
+                                <td>{{ u.n_reservas }}</td>
+                                <td><button type="button" class="ver">Ver</button></td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="7" class="vazio">Nenhum usuário encontrado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="rodape-tabela">
+            <span>Mostrando <strong>{{ pagina.start_index }}</strong> a <strong>{{ pagina.end_index }}</strong> de <strong>{{ pagina.paginator.count }}</strong> usuário{{ pagina.paginator.count|pluralize }}</span>
+            {% if pagina.paginator.num_pages > 1 %}
+                <div class="paginas">
+                    {% if pagina.has_previous %}<a href="?{{ querystring }}&page={{ pagina.previous_page_number }}" aria-label="Página anterior"><i class="bi bi-chevron-left"></i></a>{% endif %}
+                    {% for n in paginas %}
+                        {% if n == reticencias %}<span>…</span>
+                        {% else %}<a href="?{{ querystring }}&page={{ n }}" class="{% if n == pagina.number %}atual{% endif %}">{{ n }}</a>{% endif %}
+                    {% endfor %}
+                    {% if pagina.has_next %}<a href="?{{ querystring }}&page={{ pagina.next_page_number }}" aria-label="Próxima página"><i class="bi bi-chevron-right"></i></a>{% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <aside class="painel" id="painel" aria-label="Detalhes do usuário" hidden>
+        <div class="painel-topo">
+            <h2>Detalhes do usuário</h2>
+            <button type="button" class="fechar" id="p-fechar" aria-label="Fechar detalhes"><i class="bi bi-x-circle"></i></button>
+        </div>
+
+        <div class="perfil">
+            <div class="avatar" id="p-avatar"></div>
+            <div><strong id="p-nome"></strong><span class="badge" id="p-perfil-badge" style="margin-top: 4px;"></span></div>
+        </div>
+
+        <div class="sec"><div class="rot"><i class="bi bi-envelope"></i> Contato</div><span class="linha" id="p-email"></span><span class="linha suave" id="p-telefone"></span></div>
+        <div class="sec"><div class="rot"><i class="bi bi-person-vcard"></i> CPF</div><span class="linha" id="p-cpf"></span></div>
+        <div class="sec"><div class="rot"><i class="bi bi-geo-alt"></i> Endereço</div><span class="linha" id="p-endereco"></span></div>
+        <div class="sec"><div class="rot"><i class="bi bi-check-circle"></i> Situação da conta</div><span class="badge" id="p-badge"></span></div>
+        <div class="sec"><div class="rot"><i class="bi bi-calendar3"></i> Reservas (<span id="p-total"></span>)</div><div id="p-recentes"></div></div>
+
+        <form method="post" class="alterar" id="p-form">
+            {% csrf_token %}
+            <input type="hidden" name="voltar" value="{{ request.get_full_path }}">
+            <label for="p-status">Situação</label>
+            <select name="status" id="p-status">
+                <option value="ACTIVE">Ativo</option>
+                <option value="INACTIVE">Inativo</option>
+                <option value="PENDING">Pendente</option>
+                <option value="BLOCKED">Bloqueado</option>
+            </select>
+            <label for="p-perfil">Perfil</label>
+            <select name="perfil" id="p-perfil">
+                <option value="{{ USER }}">Cliente</option>
+                <option value="{{ ADMIN }}">Administrador</option>
+            </select>
+            <p class="nota" id="p-nota"></p>
+            <div class="botoes">
+                <button type="button" class="btn btn-contorno" id="p-cancelar">Cancelar</button>
+                <button type="submit" class="btn btn-verde" id="p-salvar">Salvar alterações</button>
+            </div>
+        </form>
+    </aside>
+</div>
+<div class="fundo" id="fundo" hidden></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var layout = document.getElementById("layout");
+    var painel = document.getElementById("painel");
+    var fundo = document.getElementById("fundo");
+    var linhas = document.querySelectorAll("tbody tr[data-nome]");
+    var ativa = null;
+    var ADMIN = layout.dataset.admin;
+
+    function $(id) { return document.getElementById(id); }
+
+    function avatar(el, foto, inicial) {
+        el.innerHTML = "";
+        if (foto) { var img = document.createElement("img"); img.src = foto; img.alt = ""; el.appendChild(img); }
+        else { el.textContent = inicial; }
+    }
+
+    function abrir(linha) {
+        var d = linha.dataset;
+        avatar($("p-avatar"), d.foto, d.inicial);
+        $("p-nome").textContent = d.nome;
+        var pb = $("p-perfil-badge");
+        pb.textContent = d.perfilRotulo;
+        pb.className = "badge " + (d.perfil === ADMIN ? "admin" : "cliente");
+        $("p-email").textContent = d.email;
+        $("p-telefone").textContent = d.telefone;
+        $("p-cpf").textContent = d.cpf;
+        $("p-endereco").textContent = d.endereco;
+        $("p-total").textContent = d.reservas;
+        var badge = $("p-badge");
+        badge.textContent = d.rotulo;
+        badge.className = "badge " + d.classe;
+
+        var lista = $("p-recentes");
+        lista.innerHTML = "";
+        var recentes = JSON.parse(d.recentes || "[]");
+        if (!recentes.length) {
+            var vazio = document.createElement("span");
+            vazio.className = "linha suave"; vazio.textContent = "Nenhuma reserva.";
+            lista.appendChild(vazio);
+        }
+        recentes.forEach(function (r) {
+            var item = document.createElement("div");
+            item.className = "res";
+            var esq = document.createElement("div");
+            var forte = document.createElement("strong"); forte.textContent = r.codigo + " · " + r.veiculo;
+            var peq = document.createElement("small"); peq.textContent = r.periodo;
+            esq.appendChild(forte); esq.appendChild(peq);
+            var dir = document.createElement("span"); dir.className = "suave"; dir.textContent = r.situacao;
+            item.appendChild(esq); item.appendChild(dir);
+            lista.appendChild(item);
+        });
+
+        $("p-status").value = d.status;
+        $("p-perfil").value = d.perfil;
+        var eu = !!d.eu;
+        $("p-status").disabled = eu;
+        $("p-perfil").disabled = eu;
+        $("p-salvar").hidden = eu;
+        $("p-nota").textContent = eu
+            ? "Esta é a sua conta. Para alterar seus dados, use Editar perfil no site."
+            : "Inativo ou bloqueado impede o login. As reservas da pessoa continuam registradas.";
+        $("p-form").action = d.url;
+
+        linhas.forEach(function (l) { l.classList.toggle("sel", l === linha); });
+        layout.classList.add("aberto");
+        painel.hidden = false;
+        fundo.hidden = false;
+        ativa = linha;
+        $("p-fechar").focus();
+    }
+
+    function fechar() {
+        painel.hidden = true; fundo.hidden = true;
+        layout.classList.remove("aberto");
+        linhas.forEach(function (l) { l.classList.remove("sel"); });
+        if (ativa) ativa.focus();
+        ativa = null;
+    }
+
+    linhas.forEach(function (linha) {
+        linha.addEventListener("click", function () { abrir(linha); });
+        linha.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(linha); }
+        });
+    });
+    $("p-fechar").addEventListener("click", fechar);
+    $("p-cancelar").addEventListener("click", fechar);
+    fundo.addEventListener("click", fechar);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !painel.hidden) fechar(); });
+
+    // Promover a administrador ou bloquear pede confirmação
+    $("p-form").addEventListener("submit", function (e) {
+        var promove = $("p-perfil").value === ADMIN && ativa && ativa.dataset.perfil !== ADMIN;
+        var bloqueia = $("p-status").value !== "ACTIVE" && ativa && ativa.dataset.status === "ACTIVE";
+        var pergunta = promove ? "Dar acesso de administrador a esta pessoa?"
+                     : bloqueia ? "Esta pessoa não conseguirá mais entrar na conta. Continuar?" : "";
+        if (pergunta && !confirm(pergunta)) e.preventDefault();
+    });
+
+    ["f-perfil", "f-situacao"].forEach(function (id) {
+        $(id).addEventListener("change", function () { this.form.submit(); });
+    });
+})();
+</script>
+{% endblock %}

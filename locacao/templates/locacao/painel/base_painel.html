@@ -43,8 +43,9 @@
         .pl-quem { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
         .pl-avatar {
             width: 38px; height: 38px; border-radius: 50%; background: var(--verde); color: #fff; font-weight: 700;
-            display: flex; align-items: center; justify-content: center;
+            display: flex; align-items: center; justify-content: center; overflow: hidden; flex: none;
         }
+        .pl-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .pl-quem strong { display: block; font-size: .875rem; color: #fff; }
         .pl-quem small { font-size: .75rem; color: #8fb3a8; word-break: break-all; }
         .pl-sair { display: flex; align-items: center; gap: 10px; background: none; border: 0; color: #cfe3dc; font: inherit; cursor: pointer; padding: 4px; }
@@ -90,12 +91,13 @@
             <a href="{% url 'painel_veiculos' %}" class="{% if request.resolver_match.url_name == 'painel_veiculos' %}ativo{% endif %}"><i class="bi bi-car-front"></i> Veículos</a>
             <a href="{% url 'painel_reservas' %}" class="{% if request.resolver_match.url_name == 'painel_reservas' %}ativo{% endif %}"><i class="bi bi-calendar3"></i> Reservas</a>
             <a href="{% url 'painel_cadastros_inicio' %}" class="{% if request.resolver_match.url_name == 'painel_cadastros' %}ativo{% endif %}"><i class="bi bi-tags"></i> Cadastros</a>
+            <a href="{% url 'painel_usuarios' %}" class="{% if request.resolver_match.url_name == 'painel_usuarios' %}ativo{% endif %}"><i class="bi bi-people"></i> Usuários</a>
         </nav>
 
         <div class="pl-usuario">
             <a href="{% url 'index' %}" class="pl-ver-site"><i class="bi bi-box-arrow-up-right"></i> Ver site</a>
             <div class="pl-quem">
-                <div class="pl-avatar">{{ user.first_name|slice:":1"|default:"A"|upper }}</div>
+                <div class="pl-avatar">{% if user.profile_photo %}<img src="{{ user.profile_photo.url }}" alt="">{% else %}{{ user.first_name|slice:":1"|default:"A"|upper }}{% endif %}</div>
                 <div>
                     <strong>{{ user.full_name|default:user.first_name|default:"Administrador" }}</strong>
                     <small>{{ user.email }}</small>

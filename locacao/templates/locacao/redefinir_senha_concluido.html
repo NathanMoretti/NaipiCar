@@ -1,0 +1,17 @@
+{% extends 'locacao/auth_base.html' %}
+{% load static %}
+
+{% block titulo %}Senha alterada - NaipiCar{% endblock %}
+
+{% block foto %}{% static 'img/auth-login.png' %}{% endblock %}
+
+{% block painel %}
+    <h2>Tudo certo. <em>Boa viagem!</em></h2>
+    <p>Sua nova senha já está valendo.</p>
+{% endblock %}
+
+{% block formulario %}
+    <h1>Senha alterada</h1>
+    <p class="auth-sub">Você já pode entrar na sua conta com a nova senha.</p>
+    <a href="{% url 'login' %}" class="auth-botao" style="display: flex; align-items: center; justify-content: center; text-decoration: none; color: #fff;">Entrar</a>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% autoescape off %}Olá, {{ user.first_name }}!
+
+Recebemos um pedido para redefinir a senha da sua conta na NaipiCar.
+Para criar uma nova senha, acesse o link abaixo. Ele vale por 1 hora:
+
+{{ protocol }}://{{ domain }}{% url 'redefinir_senha' uidb64=uid token=token %}
+
+Se não foi você quem pediu, ignore este e-mail: a sua senha continua a mesma.
+
+NaipiCar - Seu caminho começa em Foz.
+{% endautoescape %}
