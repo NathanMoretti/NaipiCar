@@ -105,7 +105,7 @@ class LoginTests(TestCase):
     def test_login_por_email(self):
         r = self.client.post(reverse('login'), {'username': 'Lucas@Email.com', 'password': 'Senha@123'})
         self.assertRedirects(r, reverse('index'))
-        self.assertContains(self.client.get(reverse('index')), 'Olá, <strong>Lucas</strong>')
+        self.assertContains(self.client.get(reverse('index')), 'Lucas Almeida Souza')
 
     def test_senha_errada(self):
         r = self.client.post(reverse('login'), {'username': 'lucas@email.com', 'password': 'errada'})
@@ -122,7 +122,7 @@ class LoginTests(TestCase):
             'admin@naipicar.com', 'Admin@123', first_name='Admin', last_name='Geral',
             cpf='11144477735', phone='(45) 99999-0000')
         r = self.client.post(reverse('login'), {'username': 'admin@naipicar.com', 'password': 'Admin@123'})
-        self.assertRedirects(r, '/admin/', fetch_redirect_response=False)
+        self.assertRedirects(r, '/painel/', fetch_redirect_response=False)
         self.assertEqual(self.client.get('/admin/').status_code, 200)
 
     def test_cliente_comum_nao_entra_no_admin(self):
