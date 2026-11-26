@@ -1,0 +1,7 @@
+# Driver do MySQL (instale só se for usar DB_ENGINE=mysql no .env)
+-r requirements.txt
+PyMySQL>=1.1,<2.0
+
+# Alternativa mais rápida, mas que precisa compilar em algumas máquinas.
+# Para usar: descomente a linha abaixo e coloque DB_DRIVER=mysqlclient no .env
+# mysqlclient>=2.2,<3.0
