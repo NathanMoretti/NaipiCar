@@ -4,42 +4,87 @@
 
 {% block extra_head %}
 <style>
-    .cartoes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-    .indicador { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 18px 24px 22px; }
-    .indicador::before { content: ""; display: block; height: 3px; border-radius: 2px; background: var(--verde-escuro); margin-bottom: 16px; }
-    .indicador.alerta::before { background: #e5484d; }
-    .indicador span { display: block; font-size: .75rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--suave); }
-    .indicador strong { display: block; font-size: 2.5rem; line-height: 1.2; margin-top: 8px; }
-    .indicador.alerta strong { color: #e5484d; }
+    .controles { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 14px 20px; margin-bottom: 20px; display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+    .controles label { display: block; font-size: .6875rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); margin-bottom: 6px; }
+    .campo { display: flex; align-items: center; height: 40px; padding: 0 12px; border: 1px solid var(--borda); border-radius: 8px; background: #fff; }
+    .campo select, .campo input { border: 0; outline: 0; background: transparent; font: inherit; font-size: .875rem; color: var(--texto); height: 100%; }
+    .controles .espaco { flex: 1; }
+    .resumo-periodo { font-size: .8125rem; color: var(--suave); margin: -8px 0 16px; }
 
-    .blocos { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-    .bloco { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 24px 28px 28px; }
-    .bloco::before { content: ""; display: block; height: 3px; border-radius: 2px; background: var(--verde-escuro); margin-bottom: 24px; }
-    .bloco h2 { margin: 0 0 20px; font-size: 1.25rem; font-weight: 700; color: var(--verde-escuro); }
+    .personalizar { position: relative; }
+    .personalizar summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 1px solid var(--borda); border-radius: 8px; background: #fff; font-weight: 600; font-size: .875rem; }
+    .personalizar summary::-webkit-details-marker { display: none; }
+    .personalizar-menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; min-width: 260px; background: #fff; border: 1px solid var(--borda); border-radius: 12px; box-shadow: 0 10px 30px rgba(15,40,35,.15); padding: 14px 16px; }
+    .personalizar-menu strong { display: block; font-size: .8125rem; margin-bottom: 8px; }
+    .personalizar-menu label { display: flex; gap: 10px; align-items: center; padding: 6px 0; font-size: .875rem; text-transform: none; letter-spacing: 0; color: var(--texto); font-weight: 400; margin: 0; cursor: pointer; }
+    .personalizar-menu button { margin-top: 8px; border: 0; background: none; color: var(--verde); font: inherit; font-weight: 600; font-size: .8125rem; cursor: pointer; padding: 0; }
+
+    .cartoes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+    .indicador { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 18px 22px 20px; }
+    .indicador::before { content: ""; display: block; height: 3px; border-radius: 2px; background: var(--verde-escuro); margin-bottom: 14px; }
+    .indicador span.rot { display: block; font-size: .75rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--suave); }
+    .indicador strong { display: block; font-size: 2rem; line-height: 1.2; margin-top: 6px; }
+    .indicador small { color: var(--suave); font-size: .75rem; }
+    .delta { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 6px; font-size: .75rem; font-weight: 700; vertical-align: middle; }
+    .delta.up { background: #d9f2e4; color: #1f6f43; }
+    .delta.down { background: #fbdcdc; color: #c0392b; }
+
+    .atencao { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .alerta-card { flex: 1; min-width: 240px; display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 12px; background: #fff; border: 1px solid var(--borda); }
+    .alerta-card i { font-size: 1.4rem; }
+    .alerta-card strong { font-size: 1.25rem; margin-right: 6px; }
+    .alerta-card.amarelo { border-color: #f0d98a; background: #fffbea; } .alerta-card.amarelo i { color: #b7791f; }
+    .alerta-card.vermelho { border-color: #f1b3b3; background: #fff5f5; } .alerta-card.vermelho i { color: #c0392b; }
+    .alerta-card a { margin-left: auto; color: var(--verde); font-weight: 600; font-size: .8125rem; }
+
+    .blocos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 20px; align-items: start; }
+    .bloco { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 22px 26px 26px; min-width: 0; }
+    .bloco.largo { grid-column: 1 / -1; }
+    .bloco::before { content: ""; display: block; height: 3px; border-radius: 2px; background: var(--verde-escuro); margin-bottom: 18px; }
+    .bloco h2 { margin: 0 0 4px; font-size: 1.125rem; font-weight: 700; color: var(--verde-escuro); }
+    .bloco .sub { margin: 0 0 16px; font-size: .75rem; color: var(--suave); }
+
+    .grafico { display: flex; align-items: flex-end; gap: 4px; height: 170px; padding-top: 8px; border-bottom: 1px solid var(--borda); }
+    .grafico .col { flex: 1; min-width: 0; height: 100%; display: flex; align-items: flex-end; }
+    .grafico .barra { width: 100%; background: var(--verde); border-radius: 4px 4px 0 0; }
+    .grafico.azul .barra { background: #2f7fd1; }
+    .grafico .col:hover .barra { opacity: .75; }
+    .eixo { display: flex; gap: 4px; margin-top: 6px; }
+    .eixo span { flex: 1; min-width: 0; font-size: .625rem; color: var(--suave); text-align: center; white-space: nowrap; overflow: visible; }
+
+    .segmentos { display: flex; height: 16px; border-radius: 8px; overflow: hidden; background: #e3e8ec; margin-bottom: 16px; }
+    .segmentos div { height: 100%; }
+    .lista-sit { display: grid; gap: 10px; }
+    .lista-sit div { display: flex; align-items: center; gap: 10px; font-size: .875rem; }
+    .lista-sit .pt { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+    .lista-sit b { margin-left: auto; }
+    .c-pendente { background: #f0c63c; } .c-confirmada { background: #2fa36b; } .c-atrasado { background: #e8833a; }
+    .c-concluida { background: #2f7fd1; } .c-cancelada { background: #e5484d; }
 
     .rolagem { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 560px; }
-    th { text-align: left; font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); padding: 10px 8px 12px; border-bottom: 2px solid var(--borda); }
-    td { padding: 14px 8px; border-bottom: 1px solid var(--borda); font-size: .875rem; }
+    table { width: 100%; border-collapse: collapse; min-width: 420px; }
+    th { text-align: left; font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); padding: 8px 8px 10px; border-bottom: 2px solid var(--borda); }
+    td { padding: 11px 8px; border-bottom: 1px solid var(--borda); font-size: .8125rem; }
     tbody tr:last-child td { border-bottom: 0; }
+    td.num, th.num { text-align: right; }
+    .mini-barra { height: 8px; border-radius: 4px; background: #e3e8ec; min-width: 70px; overflow: hidden; }
+    .mini-barra div { height: 100%; background: #1db5a0; }
     .tag { display: inline-block; padding: 3px 12px; border-radius: 6px; font-size: .75rem; font-weight: 600; }
-    .tag.retirada { background: #fdf0c4; color: #a15c00; }
-    .tag.devolucao { background: #d9f2e4; color: #1f6f43; }
-    .tag.atrasado { background: #fbdcdc; color: #c0392b; }
-    .st { color: var(--suave); }
-    .st.atrasado { color: #c0392b; font-weight: 600; }
-    .mais { margin: 14px 0 0; font-size: .8125rem; color: var(--suave); }
+    .tag.retirada { background: #fdf0c4; color: #a15c00; } .tag.devolucao { background: #d9f2e4; color: #1f6f43; } .tag.atrasado { background: #fbdcdc; color: #c0392b; }
+    .st { color: var(--suave); } .st.atrasado { color: #c0392b; font-weight: 600; }
+    .ranking { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+    .ranking li { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--borda); font-size: .8125rem; }
+    .ranking li:last-child { border-bottom: 0; }
+    .ranking .pos { width: 24px; height: 24px; border-radius: 50%; background: var(--verde-claro); color: var(--verde); font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; }
+    .ranking strong { display: block; font-size: .875rem; }
+    .ranking small { color: var(--suave); }
+    .ranking .dir { margin-left: auto; text-align: right; }
+    .dia-agenda { font-size: .75rem; font-weight: 700; text-transform: capitalize; color: var(--verde-escuro); margin: 12px 0 6px; }
+    .dia-agenda:first-of-type { margin-top: 0; }
+    .linha-agenda { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: .8125rem; }
+    .vazio { color: var(--suave); font-size: .875rem; padding: 8px 0; }
+    .mais { margin: 12px 0 0; font-size: .8125rem; color: var(--suave); }
     .mais a { color: var(--verde); font-weight: 600; }
-
-    .barra-linha { margin-bottom: 18px; font-size: .875rem; }
-    .barra { height: 12px; border-radius: 6px; background: #e3e8ec; margin-top: 6px; overflow: hidden; }
-    .barra > div { height: 100%; border-radius: 6px; background: #1db5a0; min-width: 4px; }
-    .barra-linha:first-of-type .barra > div { background: var(--verde-escuro); }
-    .barra-linha:last-of-type .barra > div { background: #8ee6d6; }
-    .destaque { border-top: 1px solid var(--borda); margin-top: 24px; padding-top: 20px; font-size: .875rem; }
-    .destaque strong { display: block; margin-bottom: 6px; }
-    .destaque span { color: var(--suave); }
-    .vazio { color: var(--suave); font-size: .875rem; padding: 12px 0; }
 
     @media (max-width: 1100px) { .cartoes { grid-template-columns: 1fr 1fr; } .blocos { grid-template-columns: 1fr; } }
     @media (max-width: 560px) { .cartoes { grid-template-columns: 1fr; } }
@@ -54,57 +99,231 @@
     </div>
 </div>
 
-<div class="cartoes">
-    <div class="indicador"><span>Veículos reservados</span><strong>{{ reservados }}</strong></div>
-    <div class="indicador"><span>Taxa de ocupação</span><strong>{{ taxa }}%</strong></div>
-    <div class="indicador {% if atrasos %}alerta{% endif %}"><span>Alerta de atrasos</span><strong>{{ atrasos }}</strong></div>
-    <div class="indicador"><span>Receita estimada</span><strong>R$ {{ receita|floatformat:"0g" }}</strong></div>
-</div>
+<form method="get" class="controles" id="form-filtros">
+    <div>
+        <label for="f-periodo">Período</label>
+        <div class="campo">
+            <select name="periodo" id="f-periodo">
+                {% for valor, rotulo in periodos %}<option value="{{ valor }}" {% if valor == chave %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+            </select>
+        </div>
+    </div>
+    <div id="datas-personalizadas" {% if chave != "personalizado" %}hidden{% endif %}>
+        <label for="f-de">De / até</label>
+        <div class="campo">
+            <input type="date" id="f-de" name="de" value="{{ ini|date:'Y-m-d' }}" aria-label="Data inicial">
+            <span style="margin: 0 6px; color: var(--suave);">–</span>
+            <input type="date" id="f-ate" name="ate" value="{{ fim|date:'Y-m-d' }}" aria-label="Data final">
+        </div>
+    </div>
+    <div>
+        <label for="f-categoria">Categoria</label>
+        <div class="campo">
+            <select name="categoria" id="f-categoria">
+                <option value="">Todas as categorias</option>
+                {% for c in todas_categorias %}<option value="{{ c.id }}" {% if categoria_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nome }}</option>{% endfor %}
+            </select>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-verde" id="btn-aplicar" {% if chave != "personalizado" %}hidden{% endif %}>Aplicar</button>
+    <div class="espaco"></div>
+
+    <details class="personalizar" id="personalizar">
+        <summary><i class="bi bi-sliders2"></i> Personalizar</summary>
+        <div class="personalizar-menu">
+            <strong>Escolha o que mostrar</strong>
+            <label><input type="checkbox" data-alternar="indicadores"> Indicadores</label>
+            <label><input type="checkbox" data-alternar="atencao"> Alertas</label>
+            <label><input type="checkbox" data-alternar="graficos"> Gráficos de receita e reservas</label>
+            <label><input type="checkbox" data-alternar="situacao"> Reservas por situação</label>
+            <label><input type="checkbox" data-alternar="categorias"> Desempenho por categoria</label>
+            <label><input type="checkbox" data-alternar="veiculos"> Veículos mais alugados</label>
+            <label><input type="checkbox" data-alternar="clientes"> Clientes que mais reservam</label>
+            <label><input type="checkbox" data-alternar="radar"> Radar do dia</label>
+            <label><input type="checkbox" data-alternar="agenda"> Próximos 7 dias</label>
+            <button type="button" id="restaurar">Mostrar tudo</button>
+        </div>
+    </details>
+</form>
+
+<p class="resumo-periodo">
+    Período: <strong>{{ ini|date:"d/m/Y" }}</strong> a <strong>{{ fim|date:"d/m/Y" }}</strong> ({{ dias }} dia{{ dias|pluralize }}),
+    comparado com {{ ant_ini|date:"d/m/Y" }} a {{ ant_fim|date:"d/m/Y" }}.
+</p>
+
+<section data-widget="atencao" class="atencao">
+    <div class="alerta-card {% if pendentes %}amarelo{% endif %}"><i class="bi bi-hourglass-split"></i><div><strong>{{ pendentes }}</strong>reserva{{ pendentes|pluralize }} em análise</div><a href="{% url 'painel_reservas' %}?situacao=pendente">Ver</a></div>
+    <div class="alerta-card {% if atrasos %}vermelho{% endif %}"><i class="bi bi-exclamation-triangle"></i><div><strong>{{ atrasos }}</strong>devolução{{ atrasos|pluralize:",ões" }} atrasada{{ atrasos|pluralize }}</div><a href="{% url 'painel_reservas' %}?situacao=atrasado">Ver</a></div>
+</section>
+
+<section data-widget="indicadores" class="cartoes">
+    {% for c in cartoes %}
+        <div class="indicador">
+            <span class="rot">{{ c.rotulo }}</span>
+            <strong>{{ c.valor }}{% if c.var is not None %}<span class="delta {% if c.var >= 0 %}up{% else %}down{% endif %}">{% if c.var >= 0 %}▲{% else %}▼{% endif %} {{ c.var }}%</span>{% endif %}</strong>
+            <small>{{ c.nota }}</small>
+        </div>
+    {% endfor %}
+</section>
 
 <div class="blocos">
-    <section class="bloco">
-        <h2>Radar do Dia ({{ hoje|date:"d/m/Y" }})</h2>
-        {% if radar %}
+    <section data-widget="graficos" class="bloco largo">
+        <h2>Receita e reservas {% if por_dia %}por dia{% else %}por mês{% endif %}</h2>
+        <p class="sub">Reservas com retirada em cada {% if por_dia %}dia{% else %}mês{% endif %}, sem as canceladas. Passe o mouse sobre uma barra para ver o valor.</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px;">
+            <div>
+                <strong style="font-size: .8125rem;">Receita estimada</strong>
+                <div class="grafico" role="img" aria-label="Gráfico de receita">
+                    {% for b in serie %}<div class="col" title="{{ b.rotulo }}: {{ b.receita_txt }}"><div class="barra" style="height: {{ b.h_receita }}%;"></div></div>{% endfor %}
+                </div>
+                <div class="eixo">{% for b in serie %}<span>{% if b.mostrar %}{{ b.rotulo }}{% endif %}</span>{% endfor %}</div>
+            </div>
+            <div>
+                <strong style="font-size: .8125rem;">Quantidade de reservas</strong>
+                <div class="grafico azul" role="img" aria-label="Gráfico de reservas">
+                    {% for b in serie %}<div class="col" title="{{ b.rotulo }}: {{ b.reservas }} reserva{{ b.reservas|pluralize }}"><div class="barra" style="height: {{ b.h_reservas }}%;"></div></div>{% endfor %}
+                </div>
+                <div class="eixo">{% for b in serie %}<span>{% if b.mostrar %}{{ b.rotulo }}{% endif %}</span>{% endfor %}</div>
+            </div>
+        </div>
+    </section>
+
+    <section data-widget="situacao" class="bloco">
+        <h2>Reservas por situação</h2>
+        <p class="sub">Todas as reservas com retirada no período.</p>
+        <div class="segmentos" role="img" aria-label="Distribuição das reservas por situação">
+            {% for s in situacoes %}{% if s.pct %}<div class="c-{{ s.classe }}" style="width: {{ s.pct }}%;" title="{{ s.rotulo }}: {{ s.n }}"></div>{% endif %}{% endfor %}
+        </div>
+        <div class="lista-sit">
+            {% for s in situacoes %}<div><span class="pt c-{{ s.classe }}"></span>{{ s.rotulo }}<b>{{ s.n }} ({{ s.pct }}%)</b></div>{% endfor %}
+        </div>
+    </section>
+
+    <section data-widget="categorias" class="bloco">
+        <h2>Desempenho por categoria</h2>
+        <p class="sub">Demanda, receita e ocupação no período.</p>
+        {% if categorias %}
             <div class="rolagem">
                 <table>
-                    <thead><tr><th>Cliente</th><th>Veículo</th><th>Ação programada</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Categoria</th><th class="num">Reservas</th><th>Demanda</th><th class="num">Receita</th><th class="num">Ocupação</th></tr></thead>
                     <tbody>
-                        {% for item in radar %}
+                        {% for c in categorias %}
                             <tr>
-                                <td>{{ item.cliente }}</td>
-                                <td>{{ item.veiculo }}</td>
-                                <td><span class="tag {{ item.classe }}">{{ item.acao }}</span></td>
-                                <td class="st {{ item.classe }}">{{ item.status }}</td>
+                                <td><strong>{{ c.nome }}</strong></td>
+                                <td class="num">{{ c.n }}</td>
+                                <td><div class="mini-barra" title="{{ c.pct }}% das reservas"><div style="width: {{ c.pct }}%;"></div></div></td>
+                                <td class="num">{{ c.receita_txt }}</td>
+                                <td class="num">{{ c.ocupacao }}%</td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            {% if total_radar > radar|length %}
-                <p class="mais">Mostrando {{ radar|length }} de {{ total_radar }}. <a href="{% url 'painel_reservas' %}?periodo=hoje">Ver todas as reservas de hoje</a></p>
-            {% endif %}
-        {% else %}
-            <p class="vazio">Nenhuma retirada, devolução ou atraso para hoje.</p>
-        {% endif %}
+        {% else %}<p class="vazio">Sem reservas no período.</p>{% endif %}
     </section>
 
-    <section class="bloco">
-        <h2>Top Categorias (Demanda)</h2>
-        {% for c in categorias %}
-            <div class="barra-linha">
-                {{ c.nome }} ({{ c.pct }}% das reservas)
-                <div class="barra" role="img" aria-label="{{ c.nome }}: {{ c.pct }}%"><div style="width: {{ c.pct }}%;"></div></div>
-            </div>
-        {% empty %}
-            <p class="vazio">Sem reservas nos últimos 30 dias.</p>
-        {% endfor %}
+    <section data-widget="veiculos" class="bloco">
+        <h2>Veículos mais alugados</h2>
+        <p class="sub">Top 5 no período.</p>
+        {% if top_veiculos %}
+            <ol class="ranking">
+                {% for v in top_veiculos %}
+                    <li><span class="pos">{{ forloop.counter }}</span><div><strong>{{ v.nome }}</strong><small>{{ v.placa }}</small></div><div class="dir"><strong>{{ v.n }} reserva{{ v.n|pluralize }}</strong><small>{{ v.receita_txt }}</small></div></li>
+                {% endfor %}
+            </ol>
+        {% else %}<p class="vazio">Sem reservas no período.</p>{% endif %}
+    </section>
 
-        {% if mais_alugado %}
-            <div class="destaque">
-                <strong>Veículo mais alugado:</strong>
-                <span>{{ mais_alugado.veiculo__modelo__marca__nome }} {{ mais_alugado.veiculo__modelo__nome }} ({{ mais_alugado.n }} reserva{{ mais_alugado.n|pluralize }} nos últimos 30 dias)</span>
+    <section data-widget="clientes" class="bloco">
+        <h2>Clientes que mais reservam</h2>
+        <p class="sub">Top 5 no período.</p>
+        {% if top_clientes %}
+            <ol class="ranking">
+                {% for c in top_clientes %}
+                    <li><span class="pos">{{ forloop.counter }}</span><div><strong>{{ c.nome }}</strong></div><div class="dir"><strong>{{ c.n }} reserva{{ c.n|pluralize }}</strong><small>{{ c.receita_txt }}</small></div></li>
+                {% endfor %}
+            </ol>
+        {% else %}<p class="vazio">Sem reservas no período.</p>{% endif %}
+    </section>
+
+    <section data-widget="radar" class="bloco">
+        <h2>Radar do Dia ({{ hoje|date:"d/m/Y" }})</h2>
+        <p class="sub">Atrasos, retiradas e devoluções de hoje.</p>
+        {% if radar %}
+            <div class="rolagem">
+                <table>
+                    <thead><tr><th>Cliente</th><th>Veículo</th><th>Ação</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for item in radar %}
+                            <tr><td>{{ item.cliente }}</td><td>{{ item.veiculo }}</td><td><span class="tag {{ item.classe }}">{{ item.acao }}</span></td><td class="st {{ item.classe }}">{{ item.status }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-        {% endif %}
+            {% if total_radar > radar|length %}<p class="mais">Mostrando {{ radar|length }} de {{ total_radar }}. <a href="{% url 'painel_reservas' %}?periodo=hoje">Ver todas</a></p>{% endif %}
+        {% else %}<p class="vazio">Nenhuma retirada, devolução ou atraso para hoje.</p>{% endif %}
+    </section>
+
+    <section data-widget="agenda" class="bloco">
+        <h2>Próximos 7 dias</h2>
+        <p class="sub">Retiradas e devoluções agendadas.</p>
+        {% for dia in agenda %}
+            <div class="dia-agenda">{{ dia.data|date:"l, d/m" }}</div>
+            {% for item in dia.itens %}
+                <div class="linha-agenda"><span class="tag {{ item.classe }}">{{ item.acao }}</span><span>{{ item.cliente }} · {{ item.veiculo }}</span></div>
+            {% endfor %}
+        {% empty %}<p class="vazio">Nada agendado para os próximos 7 dias.</p>{% endfor %}
     </section>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var form = document.getElementById("form-filtros");
+    var periodo = document.getElementById("f-periodo");
+    var datas = document.getElementById("datas-personalizadas");
+    var aplicar = document.getElementById("btn-aplicar");
+
+    // Escolher um período pronto aplica na hora; "Personalizado" mostra as datas e espera o botão Aplicar
+    periodo.addEventListener("change", function () {
+        if (periodo.value === "personalizado") { datas.hidden = false; aplicar.hidden = false; }
+        else { form.submit(); }
+    });
+    document.getElementById("f-categoria").addEventListener("change", function () { form.submit(); });
+
+    // Escolha dos blocos visíveis: fica guardada neste navegador
+    var CHAVE = "naipicar.dashboard.blocos";
+    var caixas = document.querySelectorAll("[data-alternar]");
+    var padrao = {};
+    caixas.forEach(function (c) { padrao[c.dataset.alternar] = true; });
+
+    function ler() {
+        try { return Object.assign({}, padrao, JSON.parse(localStorage.getItem(CHAVE) || "{}")); }
+        catch (e) { return Object.assign({}, padrao); }
+    }
+    function aplicarEscolha(estado) {
+        caixas.forEach(function (c) { c.checked = estado[c.dataset.alternar] !== false; });
+        document.querySelectorAll("[data-widget]").forEach(function (bloco) {
+            bloco.hidden = estado[bloco.dataset.widget] === false;
+        });
+    }
+    function salvar() {
+        var estado = {};
+        caixas.forEach(function (c) { estado[c.dataset.alternar] = c.checked; });
+        try { localStorage.setItem(CHAVE, JSON.stringify(estado)); } catch (e) {}
+        aplicarEscolha(estado);
+    }
+    caixas.forEach(function (c) { c.addEventListener("change", salvar); });
+    document.getElementById("restaurar").addEventListener("click", function () {
+        caixas.forEach(function (c) { c.checked = true; });
+        salvar();
+    });
+    aplicarEscolha(ler());
+
+    // Fecha o menu "Personalizar" ao clicar fora
+    var menu = document.getElementById("personalizar");
+    document.addEventListener("click", function (e) { if (!menu.contains(e.target)) menu.removeAttribute("open"); });
+})();
+</script>
 {% endblock %}

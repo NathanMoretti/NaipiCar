@@ -27,13 +27,14 @@ def criar_admin(email="admin@teste.com", cpf="11144477735", **extra):
     return criar_cliente(email=email, cpf=cpf, profile_type=User.ADMIN, **extra)
 
 
-def criar_veiculo(placa="ABC1D23", diaria="150.00", disponivel=True, marca="Jeep", modelo="Compass", ano=2023):
+def criar_veiculo(placa="ABC1D23", diaria="150.00", disponivel=True, marca="Jeep", modelo="Compass", ano=2023,
+                  categoria="SUV", classe="Classe A"):
     marca_obj, _ = Marca.objects.get_or_create(nome=marca)
     modelo_obj, _ = ModeloCarro.objects.get_or_create(marca=marca_obj, nome=modelo)
-    categoria, _ = Categoria.objects.get_or_create(nome="SUV")
-    classe, _ = ClasseCarro.objects.get_or_create(nome="Classe A")
+    categoria_obj, _ = Categoria.objects.get_or_create(nome=categoria)
+    classe_obj, _ = ClasseCarro.objects.get_or_create(nome=classe)
     combinacao, _ = CategoriaClasse.objects.get_or_create(
-        categoria=categoria, classe=classe, defaults={"daily_rate": Decimal(diaria)}
+        categoria=categoria_obj, classe=classe_obj, defaults={"daily_rate": Decimal(diaria)}
     )
     return Veiculo.objects.create(
         modelo=modelo_obj, categoria_classe=combinacao, ano=ano, placa=placa, disponivel=disponivel

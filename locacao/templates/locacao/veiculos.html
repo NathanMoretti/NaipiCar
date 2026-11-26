@@ -11,6 +11,11 @@
     }
     .nc-modal[open] { display: flex; flex-direction: column; }
     .nc-modal::backdrop { background: rgba(10, 30, 25, .55); }
+    .nc-paginacao { display: flex; justify-content: center; gap: 8px; margin-top: 32px; }
+    .nc-paginacao a, .nc-paginacao span { min-width: 36px; height: 36px; padding: 0 10px; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--suave); }
+    .nc-paginacao a { border: 1px solid var(--borda); background: #fff; color: var(--texto); text-decoration: none; }
+    .nc-paginacao a:hover { background: var(--verde-claro); }
+    .nc-paginacao a.atual { background: var(--verde); border-color: var(--verde); color: #fff; }
     body.nc-modal-aberto { overflow: hidden; }
     .nc-modal [hidden] { display: none !important; }
     .nc-modal form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
@@ -41,7 +46,7 @@
 <section class="nc-faixa">
     <div class="nc-container">
         <h1>Veículos</h1>
-        <p>Informe o período e a categoria para ver os carros livres.</p>
+        <p>Filtre por período, categoria, preço, lugares e mais para achar o carro ideal.</p>
     </div>
 </section>
 
@@ -50,10 +55,8 @@
 <section class="nc-secao" style="padding-top: 40px;">
     <div class="nc-container">
         <p class="text-muted mb-4">
-            {{ veiculos|length }} veículo{{ veiculos|length|pluralize }} encontrado{{ veiculos|length|pluralize }}
-            {% if filtro.retirada or filtro.categoria %}
-                · <a href="{% url 'veiculos' %}" style="color: var(--verde); font-weight: 600;">Limpar filtros</a>
-            {% endif %}
+            {{ pagina.paginator.count }} veículo{{ pagina.paginator.count|pluralize }} encontrado{{ pagina.paginator.count|pluralize }}
+            {% if filtro.retirada and filtro.devolucao %}· livres de {{ filtro.retirada }} a {{ filtro.devolucao }}{% endif %}
         </p>
 
         <div class="nc-grade-3">
@@ -92,9 +95,20 @@
                     </div>
                 </article>
             {% empty %}
-                <div class="nc-vazio">Nenhum veículo encontrado para esse filtro. Tente outras datas ou categorias.</div>
+                <div class="nc-vazio">Nenhum veículo encontrado para esses filtros. Tente outras datas, um preço maior ou <a href="{% url 'veiculos' %}" style="color: var(--verde); font-weight: 600;">limpe os filtros</a>.</div>
             {% endfor %}
         </div>
+
+        {% if pagina.paginator.num_pages > 1 %}
+            <nav class="nc-paginacao" aria-label="Páginas do catálogo">
+                {% if pagina.has_previous %}<a href="?{{ querystring }}&page={{ pagina.previous_page_number }}" aria-label="Página anterior"><i class="bi bi-chevron-left"></i></a>{% endif %}
+                {% for n in paginas %}
+                    {% if n == reticencias %}<span>…</span>
+                    {% else %}<a href="?{{ querystring }}&page={{ n }}" class="{% if n == pagina.number %}atual{% endif %}">{{ n }}</a>{% endif %}
+                {% endfor %}
+                {% if pagina.has_next %}<a href="?{{ querystring }}&page={{ pagina.next_page_number }}" aria-label="Próxima página"><i class="bi bi-chevron-right"></i></a>{% endif %}
+            </nav>
+        {% endif %}
     </div>
 </section>
 

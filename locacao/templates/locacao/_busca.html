@@ -1,18 +1,18 @@
 <div class="nc-busca-faixa">
     <div class="nc-container">
-        <form class="nc-busca" method="get" action="{% url 'veiculos' %}">
+        <form class="nc-busca" method="get" action="{% url 'veiculos' %}" id="form-busca">
             <div>
                 <label for="retirada">Retirada</label>
                 <div class="nc-campo">
                     <i class="bi bi-calendar3"></i>
-                    <input type="date" id="retirada" name="retirada" value="{{ filtro.retirada }}" min="{% now 'Y-m-d' %}" required>
+                    <input type="date" id="retirada" name="retirada" value="{{ filtro.retirada }}" min="{% now 'Y-m-d' %}">
                 </div>
             </div>
             <div>
                 <label for="devolucao">Devolução</label>
                 <div class="nc-campo">
                     <i class="bi bi-calendar3"></i>
-                    <input type="date" id="devolucao" name="devolucao" value="{{ filtro.devolucao }}" min="{% now 'Y-m-d' %}" required>
+                    <input type="date" id="devolucao" name="devolucao" value="{{ filtro.devolucao }}" min="{% now 'Y-m-d' %}">
                 </div>
             </div>
             <div>
@@ -28,18 +28,108 @@
                 </div>
             </div>
             <button type="submit" class="nc-btn nc-btn-verde"><i class="bi bi-search"></i> Buscar veículos</button>
+
+            <div class="nc-extra-topo">
+                <button type="button" class="nc-mais-filtros" id="btn-mais" aria-expanded="{% if filtro.avancado %}true{% else %}false{% endif %}" aria-controls="avancado">
+                    <i class="bi bi-sliders"></i> Mais filtros
+                    {% if filtro.n_avancados %}<span class="nc-contagem">{{ filtro.n_avancados }}</span>{% endif %}
+                </button>
+                {% if filtro.ativo %}<a href="{% url 'veiculos' %}" class="nc-limpar"><i class="bi bi-x-circle"></i> Limpar filtros</a>{% endif %}
+            </div>
+
+            <div class="nc-avancado" id="avancado" {% if not filtro.avancado %}hidden{% endif %}>
+                <div>
+                    <label for="q">Marca ou modelo</label>
+                    <div class="nc-campo"><i class="bi bi-search"></i><input type="search" id="q" name="q" value="{{ filtro.q }}" placeholder="Ex: Compass"></div>
+                </div>
+                <div>
+                    <label for="marca">Marca</label>
+                    <div class="nc-campo">
+                        <i class="bi bi-tag"></i>
+                        <select id="marca" name="marca">
+                            <option value="">Todas as marcas</option>
+                            {% for m in marcas %}<option value="{{ m.id }}" {% if filtro.marca == m.id|stringformat:"s" %}selected{% endif %}>{{ m.nome }}</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                {% if motorizacoes %}
+                <div>
+                    <label for="motorizacao">Motorização</label>
+                    <div class="nc-campo">
+                        <i class="bi bi-fuel-pump"></i>
+                        <select id="motorizacao" name="motorizacao">
+                            <option value="">Qualquer</option>
+                            {% for valor, rotulo in motorizacoes %}<option value="{{ valor }}" {% if filtro.motorizacao == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                {% endif %}
+                <div>
+                    <label for="assentos">Assentos (mínimo)</label>
+                    <div class="nc-campo">
+                        <i class="bi bi-person"></i>
+                        <select id="assentos" name="assentos">
+                            <option value="">Qualquer</option>
+                            {% for n in "2457" %}<option value="{{ n }}" {% if filtro.assentos == n %}selected{% endif %}>{{ n }} ou mais</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label for="malas">Malas (mínimo)</label>
+                    <div class="nc-campo">
+                        <i class="bi bi-suitcase2"></i>
+                        <select id="malas" name="malas">
+                            <option value="">Qualquer</option>
+                            {% for n in "1234" %}<option value="{{ n }}" {% if filtro.malas == n %}selected{% endif %}>{{ n }} ou mais</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label for="preco_max">Diária máxima (R$)</label>
+                    <div class="nc-campo"><i class="bi bi-cash-coin"></i><input type="number" id="preco_max" name="preco_max" min="0" step="10" value="{{ filtro.preco_max }}" placeholder="Ex: 250"></div>
+                </div>
+                <div>
+                    <label for="ordem">Ordenar por</label>
+                    <div class="nc-campo">
+                        <i class="bi bi-arrow-down-up"></i>
+                        <select id="ordem" name="ordem">
+                            <option value="nome" {% if filtro.ordem == "nome" %}selected{% endif %}>Marca e modelo</option>
+                            <option value="preco_asc" {% if filtro.ordem == "preco_asc" %}selected{% endif %}>Menor preço</option>
+                            <option value="preco_desc" {% if filtro.ordem == "preco_desc" %}selected{% endif %}>Maior preço</option>
+                            <option value="ano_desc" {% if filtro.ordem == "ano_desc" %}selected{% endif %}>Mais novos</option>
+                            <option value="assentos_desc" {% if filtro.ordem == "assentos_desc" %}selected{% endif %}>Mais lugares</option>
+                        </select>
+                    </div>
+                </div>
+                <label class="nc-check"><input type="checkbox" name="todos" value="1" {% if filtro.todos %}checked{% endif %}> Incluir indisponíveis</label>
+            </div>
         </form>
     </div>
 </div>
 
 <script>
-    // A devolução não pode ser antes da retirada
     (function () {
-        const retirada = document.getElementById("retirada");
-        const devolucao = document.getElementById("devolucao");
-        retirada.addEventListener("change", function () {
-            devolucao.min = retirada.value;
-            if (devolucao.value && devolucao.value < retirada.value) devolucao.value = retirada.value;
+        var retirada = document.getElementById("retirada");
+        var devolucao = document.getElementById("devolucao");
+        var mais = document.getElementById("btn-mais");
+        var painel = document.getElementById("avancado");
+
+        // Se preencher uma das datas, a outra passa a ser obrigatória; a devolução não pode ser antes da retirada
+        function sincronizar() {
+            var alguma = !!(retirada.value || devolucao.value);
+            retirada.required = alguma;
+            devolucao.required = alguma;
+            if (retirada.value) devolucao.min = retirada.value;
+            if (devolucao.value && retirada.value && devolucao.value < retirada.value) devolucao.value = retirada.value;
+        }
+        retirada.addEventListener("change", sincronizar);
+        devolucao.addEventListener("change", sincronizar);
+        sincronizar();
+
+        mais.addEventListener("click", function () {
+            var aberto = painel.hidden;
+            painel.hidden = !aberto;
+            mais.setAttribute("aria-expanded", aberto ? "true" : "false");
         });
     })();
 </script>
