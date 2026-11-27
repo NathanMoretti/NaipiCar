@@ -1,6 +1,8 @@
 # Driver do MySQL (instale só se for usar DB_ENGINE=mysql no .env)
 -r requirements.txt
 PyMySQL>=1.1,<2.0
+# Necessário para o login padrão do MySQL 8 (caching_sha2_password)
+cryptography>=42
 
 # Alternativa mais rápida, mas que precisa compilar em algumas máquinas.
 # Para usar: descomente a linha abaixo e coloque DB_DRIVER=mysqlclient no .env
