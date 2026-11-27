@@ -42,10 +42,10 @@ Na página inicial, cada categoria aparece sozinha assim que tem pelo menos um v
 
 ## Tecnologias
 
-- **Python 3.12+**
-- **Django 6.1** (autenticação, ORM, painel de administração do Django)
+- **Python 3.10+**
+- **Django 5.2** (autenticação, ORM, painel de administração do Django)
 - **Bootstrap 5** no site e CSS próprio no painel administrativo
-- **SQLite** por padrão e **MySQL** como opção (veja [Banco de dados](#banco-de-dados))
+- **SQLite** por padrão e **MySQL / MariaDB** como opção, com o driver **PyMySQL** (veja [Banco de dados](#banco-de-dados))
 - **Pillow** (upload de imagens) e **python-dotenv** (configuração por arquivo `.env`)
 
 ---
@@ -73,7 +73,7 @@ cd NaipiCar
 .\setup.bat
 ```
 
-O script cria o ambiente virtual, instala as dependências, cria o banco e importa as marcas e modelos de carros.
+O script cria o ambiente virtual, instala as dependências, cria o `.env` (se ainda não existir), cria o banco e importa as marcas e modelos de carros.
 
 **Opção 2: passo a passo (PowerShell).**
 
@@ -115,7 +115,7 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-O script instala o [uv](https://docs.astral.sh/uv/) se preciso, cria o ambiente virtual com o Python 3.12, instala as dependências, cria o banco e importa as marcas e modelos.
+O script cria o ambiente virtual, instala as dependências, cria o `.env` (se ainda não existir), cria o banco e importa as marcas e modelos.
 
 **Opção 2: passo a passo.**
 
@@ -156,9 +156,9 @@ python manage.py runserver
 
 ### Problemas comuns
 
-**`ensurepip is not available` ao criar o ambiente virtual (Ubuntu/Debian):** falta o pacote `python3-venv`. Sem `sudo`, use o `setup.sh`. Com `sudo`: `sudo apt install python3-venv`.
+**`ensurepip is not available` ao criar o ambiente virtual (Ubuntu/Debian):** falta o pacote `python3-venv`: `sudo apt install python3-venv`.
 
-**Versão do Python menor que 3.12:** o Django 6 exige Python 3.12 ou superior. O `setup.sh` resolve baixando o Python correto via `uv`. Manualmente:
+**Versão do Python menor que 3.10:** o Django 5.2 exige Python 3.10 ou superior. Sem `sudo`, dá para usar o [uv](https://docs.astral.sh/uv/) para baixar um Python novo:
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -190,7 +190,7 @@ uv pip install -r requirements.txt
 
 ## Banco de dados
 
-Por padrão o projeto usa **SQLite**: não precisa instalar nem configurar nada. Para usar **MySQL**, siga os passos abaixo.
+Por padrão o projeto usa **SQLite**: não precisa instalar nem configurar nada. Para usar **MySQL** (8.0 ou superior) ou **MariaDB** (10.5 ou superior), siga os passos abaixo. A escolha é feita no arquivo `.env`, sem mexer no código.
 
 1. **Tenha um servidor MySQL (ou MariaDB) rodando** e crie o banco e o usuário:
 
@@ -209,12 +209,13 @@ Por padrão o projeto usa **SQLite**: não precisa instalar nem configurar nada.
    python -m pip install -r requirements-mysql.txt
    ```
 
-   Se o `mysqlclient` não instalar na sua máquina, edite o `requirements-mysql.txt` para usar o `PyMySQL` e coloque `DB_DRIVER=pymysql` no `.env`.
+   Isso instala o **PyMySQL**, um driver escrito só em Python que instala em qualquer sistema, sem compilador. Se preferir o `mysqlclient` (driver em C, um pouco mais rápido), descomente a linha dele no `requirements-mysql.txt`, instale de novo e coloque `DB_DRIVER=mysqlclient` no `.env`.
 
 3. **Configure o `.env`** (copie do `.env.example`):
 
    ```
    DB_ENGINE=mysql
+   DB_DRIVER=pymysql
    DB_NAME=naipicar
    DB_USER=naipicar
    DB_PASSWORD=sua_senha_forte
@@ -229,6 +230,10 @@ Por padrão o projeto usa **SQLite**: não precisa instalar nem configurar nada.
    python manage.py importar_carros
    python manage.py createsuperuser
    ```
+
+   Opcional: `python manage.py popular_dados` cria categorias, diárias, veículos, clientes e reservas de demonstração (senha dos clientes: `Senha@123`). Bom para apresentar o sistema.
+
+5. **Confira** se está tudo certo rodando os testes no MySQL: `python manage.py test`.
 
 Para voltar ao SQLite, use `DB_ENGINE=sqlite` no `.env`.
 
@@ -251,7 +256,7 @@ Em desenvolvimento, os e-mails (como o link de recuperação de senha) aparecem 
 python manage.py test
 ```
 
-Os testes cobrem as regras de reserva (período ocupado, datas, cancelamento), os filtros do catálogo, as categorias da página inicial, os cálculos do dashboard, a validação de placa, as permissões do painel, os bloqueios de exclusão, a recuperação de senha e a edição de perfil. Eles usam um banco temporário e não alteram os seus dados.
+Os testes cobrem as regras de reserva (período ocupado, datas, cancelamento, pedidos simultâneos), a proteção do histórico de reservas, os filtros do catálogo, as categorias da página inicial, os cálculos do dashboard, a validação de placa, as permissões do painel, os bloqueios de exclusão, a recuperação de senha e a edição de perfil. Eles usam um banco temporário e não alteram os seus dados. O teste de pedidos simultâneos só roda com MySQL (no SQLite ele aparece como *skipped*).
 
 ## Estrutura do projeto
 
@@ -299,6 +304,9 @@ O banco segue o dicionário de dados do projeto:
 - Troca de senha no perfil exige a senha atual. O CPF não pode ser alterado depois do cadastro.
 - Recuperação de senha por link de uso único, com validade de 1 hora, e resposta igual para e-mails que existem ou não.
 - O painel só abre para administradores ativos. Contas inativas ou bloqueadas não conseguem entrar.
+- Duas pessoas não conseguem reservar o mesmo carro no mesmo período, mesmo clicando ao mesmo tempo: a verificação e a gravação da reserva acontecem numa transação que trava o veículo (`select_for_update`).
+- O histórico de reservas não pode ser apagado: veículos e clientes com reservas não podem ser excluídos (`on_delete=PROTECT`), nem pelo `/admin/` do Django.
+- O banco de dados (`db.sqlite3`) não vai para o GitHub, para não expor dados pessoais.
 - Proteção CSRF nos formulários e uso do ORM do Django (consultas parametrizadas).
 - Segredos (chave do Django, senha do banco) ficam no arquivo `.env`, que não vai para o GitHub.
 - Tratamento de dados pessoais conforme os princípios da LGPD: CPF parcialmente oculto nas listas do painel.

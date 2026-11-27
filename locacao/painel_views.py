@@ -175,7 +175,7 @@ def veiculo_editar(request, pk):
 @require_POST
 def veiculo_excluir(request, pk):
     veiculo = get_object_or_404(Veiculo, pk=pk)
-    # A reserva é apagada junto com o veículo (CASCADE), então bloqueamos para não perder histórico
+    # O banco também bloqueia (on_delete=PROTECT); aqui mostramos uma mensagem amigável
     if Reserva.objects.filter(veiculo=veiculo).exists():
         messages.error(
             request,

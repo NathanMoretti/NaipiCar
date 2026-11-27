@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldDoesNotExist
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -173,7 +174,7 @@ def _destino_voltar(request):
 @require_POST
 def reservar_veiculo(request, veiculo_id):
     """Cria a reserva com os dados da conta do cliente logado."""
-    veiculo = get_object_or_404(Veiculo, id=veiculo_id)
+    get_object_or_404(Veiculo, id=veiculo_id)
     voltar = _destino_voltar(request)
 
     try:
@@ -185,35 +186,46 @@ def reservar_veiculo(request, veiculo_id):
 
     dias = (d2 - d1).days
 
-    if not veiculo.disponivel:
-        messages.error(request, "Este veículo está indisponível no momento.")
-    elif not veiculo.diaria:
-        messages.error(request, "Este veículo ainda não tem diária cadastrada.")
-    elif d1 < date.today():
-        messages.error(request, "A data de retirada não pode ser no passado.")
-    elif dias <= 0:
-        messages.error(request, "A data de devolução deve ser posterior à data de retirada.")
-    elif Reserva.objects.filter(
-        veiculo=veiculo, data_retirada__lte=d2, data_devolucao__gte=d1
-    ).exclude(status="Cancelada").exists():
-        messages.error(request, "Este veículo já está reservado nesse período.")
-    else:
-        usuario = request.user
-        nome = getattr(usuario, "full_name", None) or f"{usuario.first_name} {usuario.last_name}".strip()
-        Reserva.objects.create(
-            veiculo=veiculo,
-            cliente=usuario,
-            nome_cliente=nome,
-            email_cliente=usuario.email,
-            data_retirada=d1,
-            data_devolucao=d2,
-            valor_total=dias * veiculo.diaria,
-            status="Pendente",
-        )
-        messages.success(request, "Reserva solicitada! Acompanhe a situação em Minhas Reservas.")
-        return redirect("minhas_reservas")
+    # Verificar o período e gravar a reserva precisam acontecer "de uma vez só".
+    # O select_for_update() trava a linha do veículo até o fim da transação: se dois
+    # clientes pedirem o mesmo carro ao mesmo tempo, o segundo espera o primeiro terminar
+    # e então já enxerga a reserva dele, evitando duas reservas no mesmo período.
+    with transaction.atomic():
+        veiculo = Veiculo.objects.select_for_update().get(id=veiculo_id)
 
-    return redirect(voltar)
+        if not veiculo.disponivel:
+            erro = "Este veículo está indisponível no momento."
+        elif not veiculo.diaria:
+            erro = "Este veículo ainda não tem diária cadastrada."
+        elif d1 < date.today():
+            erro = "A data de retirada não pode ser no passado."
+        elif dias <= 0:
+            erro = "A data de devolução deve ser posterior à data de retirada."
+        elif Reserva.objects.filter(
+            veiculo=veiculo, data_retirada__lte=d2, data_devolucao__gte=d1
+        ).exclude(status="Cancelada").exists():
+            erro = "Este veículo já está reservado nesse período."
+        else:
+            erro = None
+            usuario = request.user
+            nome = getattr(usuario, "full_name", None) or f"{usuario.first_name} {usuario.last_name}".strip()
+            Reserva.objects.create(
+                veiculo=veiculo,
+                cliente=usuario,
+                nome_cliente=nome,
+                email_cliente=usuario.email,
+                data_retirada=d1,
+                data_devolucao=d2,
+                valor_total=dias * veiculo.diaria,
+                status="Pendente",
+            )
+
+    if erro:
+        messages.error(request, erro)
+        return redirect(voltar)
+
+    messages.success(request, "Reserva solicitada! Acompanhe a situação em Minhas Reservas.")
+    return redirect("minhas_reservas")
 
 
 # Como cada situação do banco aparece para o cliente: (texto, classe CSS)
