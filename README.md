@@ -256,7 +256,7 @@ Em desenvolvimento, os e-mails (como o link de recuperação de senha) aparecem 
 python manage.py test
 ```
 
-Os testes cobrem as regras de reserva (período ocupado, datas, cancelamento), os filtros do catálogo, as categorias da página inicial, os cálculos do dashboard, a validação de placa, as permissões do painel, os bloqueios de exclusão, a recuperação de senha e a edição de perfil. Eles usam um banco temporário e não alteram os seus dados.
+Os testes cobrem as regras de reserva (período ocupado, datas, cancelamento, pedidos simultâneos), a proteção do histórico de reservas, os filtros do catálogo, as categorias da página inicial, os cálculos do dashboard, a validação de placa, as permissões do painel, os bloqueios de exclusão, a recuperação de senha e a edição de perfil. Eles usam um banco temporário e não alteram os seus dados. O teste de pedidos simultâneos só roda com MySQL (no SQLite ele aparece como *skipped*).
 
 ## Estrutura do projeto
 
@@ -304,6 +304,9 @@ O banco segue o dicionário de dados do projeto:
 - Troca de senha no perfil exige a senha atual. O CPF não pode ser alterado depois do cadastro.
 - Recuperação de senha por link de uso único, com validade de 1 hora, e resposta igual para e-mails que existem ou não.
 - O painel só abre para administradores ativos. Contas inativas ou bloqueadas não conseguem entrar.
+- Duas pessoas não conseguem reservar o mesmo carro no mesmo período, mesmo clicando ao mesmo tempo: a verificação e a gravação da reserva acontecem numa transação que trava o veículo (`select_for_update`).
+- O histórico de reservas não pode ser apagado: veículos e clientes com reservas não podem ser excluídos (`on_delete=PROTECT`), nem pelo `/admin/` do Django.
+- O banco de dados (`db.sqlite3`) não vai para o GitHub, para não expor dados pessoais.
 - Proteção CSRF nos formulários e uso do ORM do Django (consultas parametrizadas).
 - Segredos (chave do Django, senha do banco) ficam no arquivo `.env`, que não vai para o GitHub.
 - Tratamento de dados pessoais conforme os princípios da LGPD: CPF parcialmente oculto nas listas do painel.

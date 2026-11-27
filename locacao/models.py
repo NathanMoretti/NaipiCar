@@ -98,13 +98,16 @@ class Reserva(models.Model):
       ("Cancelada", "Cancelada"),
   ]
 
+  # PROTECT: não deixa apagar um cliente ou um veículo que tenha reservas,
+  # para não perder o histórico (nem pelo /admin/ do Django). Use a situação
+  # "Inativo" no cliente ou "indisponível" no veículo.
   cliente = models.ForeignKey(
-      settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True
+      settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True
   )
   nome_cliente = models.CharField(max_length=150, blank=True, null=True)
   email_cliente = models.EmailField(blank=True, null=True)
 
-  veiculo = models.ForeignKey(Veiculo, on_delete=models.CASCADE)
+  veiculo = models.ForeignKey(Veiculo, on_delete=models.PROTECT)
   data_retirada = models.DateField()
   data_devolucao = models.DateField()
   valor_total = models.DecimalField(max_digits=10, decimal_places=2)
