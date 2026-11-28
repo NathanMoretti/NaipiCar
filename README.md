@@ -265,31 +265,38 @@ Os testes cobrem as regras de reserva (período ocupado, datas, cancelamento, pe
 NaipiCar/
 ├── manage.py
 ├── requirements.txt           # dependências do projeto
-├── requirements-mysql.txt     # driver opcional do MySQL
+├── requirements-mysql.txt     # driver do MySQL (PyMySQL)
 ├── .env.example               # modelo do arquivo de configuração (.env)
 ├── setup.sh                   # instalação automática (Linux / macOS)
 ├── setup.bat                  # instalação automática (Windows)
 ├── naipicar/                  # configurações do projeto (settings, urls)
 ├── contas/                    # usuários e endereços
 │   ├── models.py              # User e Address
-│   ├── forms.py               # cadastro
+│   ├── forms.py               # cadastro (site e painel)
 │   ├── forms_perfil.py        # edição de perfil
-│   ├── forms_senha.py         # recuperação de senha
+│   ├── forms_senha.py         # recuperação de senha e link para criar a senha
 │   └── views.py, views_perfil.py, validators.py
 ├── locacao/                   # frota, reservas e painel
 │   ├── models.py              # Marca, Modelo, Categoria, Classe, Veículo, Reserva
 │   ├── regras.py              # regras da reserva (usadas pelo site e pelo painel)
+│   ├── apoio.py               # paginação e "voltar" seguro, usados por várias telas
 │   ├── views.py               # site do cliente
-│   ├── painel_views.py        # painel administrativo
 │   ├── forms.py               # formulários do painel
+│   ├── painel/                # painel administrativo, um arquivo por tela
+│   │   ├── comum.py           # acesso só para administradores, rótulos e formatação
+│   │   ├── dashboard.py, veiculos.py, reservas.py, cadastros.py, usuarios.py
+│   ├── templates/locacao/     # páginas do site (HTML)
+│   ├── templates/locacao/painel/   # páginas do painel (HTML)
+│   ├── static/locacao/css/    # estilos: site.css, painel.css (comuns) e um arquivo por tela
+│   ├── static/locacao/js/     # scripts: painel.js (comum) e um arquivo por tela
 │   ├── fabrica.py, test_*.py  # testes automatizados
-│   ├── templates/locacao/     # site, login, cadastro e recuperação de senha
-│   ├── templates/locacao/painel/   # telas do painel
-│   └── management/commands/importar_carros.py
+│   └── management/commands/   # importar_carros e popular_dados
 ├── marcas-carros.csv          # dados para importação
 ├── modelos-carro.csv
-└── media/                     # fotos enviadas (não vai para o GitHub)
+└── media/veiculos/            # fotos dos veículos
 ```
+
+Os templates só têm HTML: o CSS e o JavaScript ficam em `locacao/static/`. O que é usado por várias telas fica num arquivo comum (`painel.css` e `painel.js`), e o resto fica no arquivo da tela.
 
 ## Modelagem do banco de dados
 
@@ -299,6 +306,12 @@ O banco segue o dicionário de dados do projeto:
 - **Marca**, **Modelo**, **Categoria**, **Classe** e **Categoria × Classe**: classificação dos veículos. A diária é definida pela combinação de categoria e classe.
 - **Veículo**: unidade física disponível para locação.
 - **Reserva**: liga o usuário ao veículo, com período, valor total e situação (pendente, confirmada, concluída ou cancelada). "Atrasada" é calculada: reserva confirmada cuja devolução já passou.
+
+No código, as situações da reserva são usadas por `Reserva.Status` (`Status.PENDENTE`, `Status.CONFIRMADA`...) e não escritas como texto, o que evita erros de digitação.
+
+Algumas regras são garantidas pelo **próprio banco** (`CheckConstraint`), e não só pelas telas: a devolução precisa ser depois da retirada, e valor, diária e quilometragem não podem ser negativos. Assim, nem uma gravação feita por fora das telas (pelo `/admin/` do Django, por exemplo) consegue deixar dados inválidos.
+
+Alguns nomes do banco estão em inglês (as tabelas `user` e `address` e campos como `first_name` e `daily_rate`) porque seguem o dicionário de dados do projeto; o restante do código está em português.
 
 ## Segurança
 
@@ -313,6 +326,27 @@ O banco segue o dicionário de dados do projeto:
 - Proteção CSRF nos formulários e uso do ORM do Django (consultas parametrizadas).
 - Segredos (chave do Django, senha do banco) ficam no arquivo `.env`, que não vai para o GitHub.
 - Tratamento de dados pessoais conforme os princípios da LGPD: CPF parcialmente oculto nas listas do painel.
+
+## Publicando o sistema
+
+O projeto já está preparado para ir para a internet (por exemplo, no PythonAnywhere, que tem plano gratuito com MySQL). No servidor:
+
+1. Configure o `.env` de produção:
+
+   ```
+   DEBUG=False
+   SECRET_KEY=uma-chave-longa-e-secreta
+   ALLOWED_HOSTS=naipicar.pythonanywhere.com
+   CSRF_TRUSTED_ORIGINS=https://naipicar.pythonanywhere.com
+   USAR_HTTPS=True
+   DB_ENGINE=mysql
+   ```
+
+   Com `DEBUG=False` o sistema **não inicia** sem uma `SECRET_KEY` própria. Para gerar uma: `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`.
+
+2. Junte os arquivos estáticos numa pasta só: `python manage.py collectstatic` (cria a pasta `staticfiles/`).
+3. No painel do servidor, aponte o endereço `/static/` para a pasta `staticfiles/` e `/media/` para a pasta `media/`. Com `DEBUG=False`, o Django não entrega esses arquivos sozinho.
+4. Confira com `python manage.py check --deploy`: não deve aparecer nenhum aviso.
 
 ## Próximos passos
 

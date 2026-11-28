@@ -1,13 +1,13 @@
 import re
-from datetime import date
 
 from django import forms
 from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.core.files.uploadedfile import UploadedFile
+from django.utils import timezone
 
 from contas.models import User
 
-from .models import Categoria, CategoriaClasse, ClasseCarro, Marca, ModeloCarro, Veiculo
+from .models import Categoria, CategoriaClasse, ClasseCarro, Marca, ModeloCarro, Reserva, Veiculo
 
 TAMANHO_MAXIMO_FOTO = 5 * 1024 * 1024  # 5 MB
 FORMATOS_FOTO = ("JPEG", "PNG")
@@ -89,7 +89,7 @@ class VeiculoForm(forms.ModelForm):
 
     def clean_ano(self):
         ano = self.cleaned_data.get("ano")
-        limite = date.today().year + 1  # permite o modelo do ano seguinte
+        limite = timezone.localdate().year + 1  # permite o modelo do ano seguinte
         if ano is not None and not (ANO_MINIMO <= ano <= limite):
             raise ValidationError(f"Informe um ano entre {ANO_MINIMO} e {limite}.")
         return ano
@@ -235,7 +235,10 @@ class ReservaPainelForm(forms.Form):
     As regras do período (datas, veículo livre) ficam em regras.criar_reserva, as mesmas do site.
     """
 
-    SITUACOES = [("Confirmada", "Reservado (confirmada)"), ("Pendente", "Em análise (aguardando sinal)")]
+    SITUACOES = [
+        (Reserva.Status.CONFIRMADA, "Reservado (confirmada)"),
+        (Reserva.Status.PENDENTE, "Em análise (aguardando sinal)"),
+    ]
 
     cliente = forms.ModelChoiceField(
         label="Cliente", queryset=None, empty_label="Selecione o cliente",
@@ -249,7 +252,7 @@ class ReservaPainelForm(forms.Form):
     data_devolucao = forms.DateField(
         label="Devolução", widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
         error_messages={"required": "Informe a data de devolução.", "invalid": "Informe uma data válida."})
-    status = forms.ChoiceField(label="Situação", choices=SITUACOES, initial="Confirmada")
+    status = forms.ChoiceField(label="Situação", choices=SITUACOES, initial=Reserva.Status.CONFIRMADA)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -260,8 +263,8 @@ class ReservaPainelForm(forms.Form):
             Veiculo.objects.filter(disponivel=True, categoria_classe__isnull=False)
             .select_related("modelo__marca", "categoria_classe").order_by("modelo__marca__nome", "modelo__nome"))
         self.fields["veiculo"].label_from_instance = self._rotulo_veiculo
-        self.fields["data_retirada"].widget.attrs["min"] = date.today().isoformat()
-        self.fields["data_devolucao"].widget.attrs["min"] = date.today().isoformat()
+        self.fields["data_retirada"].widget.attrs["min"] = timezone.localdate().isoformat()
+        self.fields["data_devolucao"].widget.attrs["min"] = timezone.localdate().isoformat()
 
     @staticmethod
     def _rotulo_veiculo(v):

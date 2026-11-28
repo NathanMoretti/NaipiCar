@@ -1,0 +1,27 @@
+/* Estilos de painel/cadastros.html (carregado por esse template) */
+.abas { display: flex; gap: 28px; border-bottom: 1px solid var(--borda); margin-bottom: 20px; overflow-x: auto; }
+.abas a { padding: 8px 0; margin-bottom: -1px; color: var(--suave); font-weight: 600; border-bottom: 2px solid transparent; white-space: nowrap; }
+.abas a.ativa { color: var(--verde); border-bottom-color: var(--verde); }
+
+.filtros { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 12px; align-items: center; }
+.campo { flex: 1; display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; color: var(--suave); }
+.campo input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: inherit; font-size: .9rem; color: var(--texto); }
+
+table { width: 100%; border-collapse: collapse; min-width: 560px; }
+th { text-align: left; font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); padding: 14px 20px; border-bottom: 1px solid var(--borda); }
+td { padding: 14px 20px; border-bottom: 1px solid var(--borda); font-size: .875rem; vertical-align: middle; }
+td:first-child { font-weight: 600; }
+.vazio { padding: 40px; text-align: center; color: var(--suave); }
+.rodape-tabela { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 20px; border-top: 1px solid var(--borda); color: var(--suave); font-size: .875rem; }
+.paginas a.atual { background: var(--verde); border-color: var(--verde); color: #fff; }
+
+.modal { border: 0; padding: 0; border-radius: 16px; width: min(520px, calc(100% - 32px)); max-height: 94vh; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; color: var(--texto); }
+.modal-topo { display: flex; justify-content: space-between; align-items: center; padding: 22px 28px; border-bottom: 1px solid var(--borda); }
+.modal-topo h2 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+.modal-corpo { padding: 22px 28px; overflow-y: auto; display: grid; gap: 16px; }
+.modal-rodape { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 28px; border-top: 1px solid var(--borda); }
+.modal label { display: block; font-size: .8125rem; font-weight: 600; margin-bottom: 6px; }
+.modal input, .modal select, .modal textarea { width: 100%; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; font: inherit; font-size: .9375rem; background: #fff; color: var(--texto); }
+.modal input, .modal select { height: 44px; }
+.modal textarea { padding: 12px 14px; resize: vertical; }
+.modal [hidden] { display: none !important; }

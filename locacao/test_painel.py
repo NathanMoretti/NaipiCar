@@ -7,6 +7,8 @@ from .fabrica import SENHA, criar_admin, criar_cliente, criar_reserva, criar_vei
 from .forms import VeiculoForm
 from .models import Categoria, CategoriaClasse, ClasseCarro, Marca, ModeloCarro, Reserva, Veiculo
 
+Status = Reserva.Status
+
 ABAS = ["marcas", "modelos", "categorias", "classes", "diarias"]
 
 
@@ -23,9 +25,9 @@ class AcessoAoPainelTests(TestCase):
         self.cliente = criar_cliente()
         # Dados variados para as telas renderizarem listas, radar e gráficos
         veiculo = criar_veiculo()
-        criar_reserva(veiculo, self.cliente, dia(-5), dia(-1), status="Confirmada")  # atrasada
-        criar_reserva(veiculo, self.cliente, dia(0), dia(2), status="Pendente")
-        criar_reserva(veiculo, self.cliente, dia(10), dia(12), status="Cancelada")
+        criar_reserva(veiculo, self.cliente, dia(-5), dia(-1), status=Status.CONFIRMADA)  # atrasada
+        criar_reserva(veiculo, self.cliente, dia(0), dia(2), status=Status.PENDENTE)
+        criar_reserva(veiculo, self.cliente, dia(10), dia(12), status=Status.CANCELADA)
 
     def test_visitante_vai_para_o_login(self):
         for url in urls_do_painel():
@@ -115,7 +117,7 @@ class VeiculosPainelTests(TestCase):
         self.assertFalse(Veiculo.objects.filter(id=self.veiculo.id).exists())
 
     def test_avisa_ao_tornar_indisponivel_com_reserva_em_aberto(self):
-        criar_reserva(self.veiculo, self.cliente, dia(1), dia(3), status="Confirmada")
+        criar_reserva(self.veiculo, self.cliente, dia(1), dia(3), status=Status.CONFIRMADA)
         url = reverse("painel_veiculo_editar", args=[self.veiculo.id])
         resposta = self.client.post(url, self.dados(placa="AAA1A11", disponivel="False"), follow=True)
         mensagens = [str(m).lower() for m in resposta.context["messages"]]
@@ -142,28 +144,28 @@ class ReservasPainelTests(TestCase):
         return reserva.status
 
     def test_segue_o_fluxo_normal(self):
-        reserva = criar_reserva(self.veiculo, self.cliente, dia(1), dia(3), status="Pendente")
-        self.assertEqual(self.mudar(reserva, "Confirmada"), "Confirmada")
-        self.assertEqual(self.mudar(reserva, "Concluída"), "Concluída")
+        reserva = criar_reserva(self.veiculo, self.cliente, dia(1), dia(3), status=Status.PENDENTE)
+        self.assertEqual(self.mudar(reserva, Status.CONFIRMADA), Status.CONFIRMADA)
+        self.assertEqual(self.mudar(reserva, Status.CONCLUIDA), Status.CONCLUIDA)
 
     def test_nao_volta_atras_depois_de_finalizada(self):
-        concluida = criar_reserva(self.veiculo, self.cliente, dia(-5), dia(-3), status="Concluída")
-        self.assertEqual(self.mudar(concluida, "Pendente"), "Concluída")
-        cancelada = criar_reserva(self.veiculo, self.cliente, dia(20), dia(22), status="Cancelada")
-        self.assertEqual(self.mudar(cancelada, "Confirmada"), "Cancelada")
+        concluida = criar_reserva(self.veiculo, self.cliente, dia(-5), dia(-3), status=Status.CONCLUIDA)
+        self.assertEqual(self.mudar(concluida, Status.PENDENTE), Status.CONCLUIDA)
+        cancelada = criar_reserva(self.veiculo, self.cliente, dia(20), dia(22), status=Status.CANCELADA)
+        self.assertEqual(self.mudar(cancelada, Status.CONFIRMADA), Status.CANCELADA)
 
     def test_nao_pula_de_pendente_para_concluida(self):
-        reserva = criar_reserva(self.veiculo, self.cliente, dia(1), dia(3), status="Pendente")
-        self.assertEqual(self.mudar(reserva, "Concluída"), "Pendente")
+        reserva = criar_reserva(self.veiculo, self.cliente, dia(1), dia(3), status=Status.PENDENTE)
+        self.assertEqual(self.mudar(reserva, Status.CONCLUIDA), Status.PENDENTE)
 
     def test_recusa_situacao_inexistente(self):
-        reserva = criar_reserva(self.veiculo, self.cliente, dia(1), dia(3), status="Pendente")
-        self.assertEqual(self.mudar(reserva, "Atrasado"), "Pendente")
+        reserva = criar_reserva(self.veiculo, self.cliente, dia(1), dia(3), status=Status.PENDENTE)
+        self.assertEqual(self.mudar(reserva, "Atrasado"), Status.PENDENTE)
 
     def test_cliente_nao_altera_situacao(self):
-        reserva = criar_reserva(self.veiculo, self.cliente, dia(1), dia(3), status="Pendente")
+        reserva = criar_reserva(self.veiculo, self.cliente, dia(1), dia(3), status=Status.PENDENTE)
         self.client.force_login(self.cliente)
-        self.assertEqual(self.mudar(reserva, "Confirmada"), "Pendente")
+        self.assertEqual(self.mudar(reserva, Status.CONFIRMADA), Status.PENDENTE)
 
     def test_busca_pelo_codigo_da_reserva(self):
         reserva = criar_reserva(self.veiculo, self.cliente, dia(1), dia(3))
@@ -172,8 +174,8 @@ class ReservasPainelTests(TestCase):
         self.assertEqual([r.id for r in resposta.context["reservas"]], [reserva.id])
 
     def test_filtro_atrasado_considera_so_confirmadas_vencidas(self):
-        atrasada = criar_reserva(self.veiculo, self.cliente, dia(-5), dia(-1), status="Confirmada")
-        criar_reserva(self.veiculo, self.cliente, dia(-9), dia(-7), status="Concluída")
+        atrasada = criar_reserva(self.veiculo, self.cliente, dia(-5), dia(-1), status=Status.CONFIRMADA)
+        criar_reserva(self.veiculo, self.cliente, dia(-9), dia(-7), status=Status.CONCLUIDA)
         resposta = self.client.get(reverse("painel_reservas"), {"situacao": "atrasado"})
         self.assertEqual([r.id for r in resposta.context["reservas"]], [atrasada.id])
 

@@ -1,17 +1,21 @@
 """Funções de apoio para os testes: criam usuários, veículos e reservas com poucos parâmetros."""
-from datetime import date, timedelta
+from datetime import timedelta
 from decimal import Decimal
+
+from django.utils import timezone
 
 from contas.models import User
 
 from .models import Categoria, CategoriaClasse, ClasseCarro, Marca, ModeloCarro, Reserva, Veiculo
+
+Status = Reserva.Status
 
 SENHA = "Senha@123"  # atende à regra RN04 (8+ caracteres, maiúscula, número e símbolo)
 
 
 def dia(n):
     """Data de hoje deslocada em n dias (dia(1) = amanhã, dia(-1) = ontem)."""
-    return date.today() + timedelta(days=n)
+    return timezone.localdate() + timedelta(days=n)
 
 
 def criar_cliente(email="cliente@teste.com", cpf="52998224725", **extra):
@@ -41,7 +45,7 @@ def criar_veiculo(placa="ABC1D23", diaria="150.00", disponivel=True, marca="Jeep
     )
 
 
-def criar_reserva(veiculo, cliente, retirada, devolucao, status="Pendente"):
+def criar_reserva(veiculo, cliente, retirada, devolucao, status=Status.PENDENTE):
     dias = max((devolucao - retirada).days, 1)
     return Reserva.objects.create(
         veiculo=veiculo,

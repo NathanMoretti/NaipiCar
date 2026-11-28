@@ -4,28 +4,7 @@
 {% block titulo %}NaipiCar - Aluguel de carros em Foz do Iguaçu{% endblock %}
 
 {% block extra_head %}
-<style>
-    .nc-hero {
-        min-height: 552px; padding-bottom: 90px; color: #fff; display: flex; align-items: center;
-        background:
-            linear-gradient(90deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.25) 50%, rgba(0,0,0,0) 100%),
-            url("{% static 'img/hero.png' %}") center / cover no-repeat, #2b4a3f;
-    }
-    .nc-hero h1 { font-size: clamp(2.5rem, 5vw, 3.75rem); line-height: 1.1; font-weight: 700; margin: 0 0 24px; max-width: 620px; text-shadow: 0 2px 12px rgba(0,0,0,.35); }
-    .nc-hero p { font-size: 1.125rem; max-width: 600px; margin: 0; text-shadow: 0 1px 8px rgba(0,0,0,.45); }
-    .nc-grade-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-    .nc-vantagem { background: #fff; border: 1px solid var(--borda); border-radius: 12px; padding: 20px; display: flex; gap: 16px; align-items: flex-start; }
-    .nc-icone { flex: none; width: 44px; height: 44px; border-radius: 10px; background: var(--verde-claro); color: var(--verde); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
-    .nc-vantagem h3 { margin: 0 0 4px; font-size: 1rem; }
-    .nc-vantagem p { margin: 0; font-size: .8125rem; color: var(--suave); }
-    .nc-passos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-    .nc-passo { display: flex; align-items: center; gap: 16px; }
-    .nc-circulo { flex: none; width: 52px; height: 52px; border-radius: 50%; border: 1.5px solid var(--verde); color: var(--verde); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
-    .nc-passo h3 { margin: 0 0 2px; font-size: 1rem; }
-    .nc-passo p { margin: 0; font-size: .8125rem; color: var(--suave); }
-    @media (max-width: 992px) { .nc-passos { grid-template-columns: 1fr; } .nc-grade-4 { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 640px) { .nc-grade-4 { grid-template-columns: 1fr; } .nc-hero { min-height: 460px; } }
-</style>
+<link rel="stylesheet" href="{% static 'locacao/css/inicio.css' %}">
 {% endblock %}
 
 {% block conteudo %}

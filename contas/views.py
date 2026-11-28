@@ -1,7 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.views import LoginView
 from django.shortcuts import redirect, render, resolve_url
-from django.urls import reverse
 from .forms import CadastroForm, LoginForm
 
 

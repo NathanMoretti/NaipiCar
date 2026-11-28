@@ -11,6 +11,8 @@ from contas.models import User
 from .fabrica import criar_admin, criar_cliente, criar_reserva, criar_veiculo, dia
 from .models import Reserva
 
+Status = Reserva.Status
+
 NOVA_SENHA = "Nova@Senha9"
 
 
@@ -28,7 +30,7 @@ class NovaReservaPeloPainelTests(TestCase):
             "veiculo": self.veiculo.pk,
             "data_retirada": dia(0).isoformat(),
             "data_devolucao": dia(3).isoformat(),
-            "status": "Confirmada",
+            "status": Status.CONFIRMADA,
         }
         dados.update(extra)
         return dados
@@ -38,21 +40,21 @@ class NovaReservaPeloPainelTests(TestCase):
         self.assertRedirects(resposta, reverse("painel_reservas"))
         reserva = Reserva.objects.get()
         self.assertEqual(reserva.cliente, self.cliente)
-        self.assertEqual(reserva.status, "Confirmada")
+        self.assertEqual(reserva.status, Status.CONFIRMADA)
         self.assertEqual(reserva.valor_total, Decimal("450.00"))  # 3 diárias x R$ 150
         self.assertEqual(reserva.nome_cliente, self.cliente.full_name)
 
     def test_pode_criar_como_em_analise(self):
-        self.client.post(self.url, self.dados(status="Pendente"))
-        self.assertEqual(Reserva.objects.get().status, "Pendente")
+        self.client.post(self.url, self.dados(status=Status.PENDENTE))
+        self.assertEqual(Reserva.objects.get().status, Status.PENDENTE)
 
     def test_situacao_invalida_e_recusada(self):
-        resposta = self.client.post(self.url, self.dados(status="Concluída"))
+        resposta = self.client.post(self.url, self.dados(status=Status.CONCLUIDA))
         self.assertEqual(resposta.status_code, 200)
         self.assertFalse(Reserva.objects.exists())
 
     def test_segue_as_mesmas_regras_do_site(self):
-        criar_reserva(self.veiculo, self.cliente, dia(1), dia(2), status="Confirmada")
+        criar_reserva(self.veiculo, self.cliente, dia(1), dia(2), status=Status.CONFIRMADA)
         casos = {
             "periodo ocupado": self.dados(),
             "retirada no passado": self.dados(data_retirada=dia(-1).isoformat()),

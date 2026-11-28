@@ -4,7 +4,8 @@ from django.views.generic import RedirectView
 from contas import views as contas_views
 from contas import views_perfil
 from contas.forms_senha import RecuperarSenhaForm
-from . import painel_views, views
+from . import views
+from .painel import cadastros, dashboard, reservas, usuarios, veiculos
 
 urlpatterns = [
     path("", views.index, name="index"),
@@ -55,20 +56,20 @@ urlpatterns = [
         name="redefinir_senha_concluido",
     ),
     path("logout/", auth_views.LogoutView.as_view(next_page="index"), name="logout"),
-    # Painel administrativo (somente is_staff)
+    # Painel administrativo (somente is_staff) - views em locacao/painel/
     path("painel/", RedirectView.as_view(pattern_name="painel_dashboard"), name="painel"),
-    path("painel/dashboard/", painel_views.dashboard, name="painel_dashboard"),
-    path("painel/reservas/", painel_views.reservas_painel, name="painel_reservas"),
-    path("painel/reservas/nova/", painel_views.reserva_nova, name="painel_reserva_nova"),
-    path("painel/reservas/<int:pk>/situacao/", painel_views.reserva_situacao, name="painel_reserva_situacao"),
-    path("painel/usuarios/", painel_views.usuarios_painel, name="painel_usuarios"),
-    path("painel/usuarios/novo/", painel_views.usuario_novo, name="painel_usuario_novo"),
-    path("painel/usuarios/<int:pk>/atualizar/", painel_views.usuario_atualizar, name="painel_usuario_atualizar"),
-    path("painel/cadastros/", painel_views.cadastros_inicio, name="painel_cadastros_inicio"),
-    path("painel/cadastros/<str:aba>/", painel_views.cadastros, name="painel_cadastros"),
-    path("painel/cadastros/<str:aba>/<int:pk>/editar/", painel_views.cadastro_editar, name="painel_cadastro_editar"),
-    path("painel/cadastros/<str:aba>/<int:pk>/excluir/", painel_views.cadastro_excluir, name="painel_cadastro_excluir"),
-    path("painel/veiculos/", painel_views.veiculos_painel, name="painel_veiculos"),
-    path("painel/veiculos/<int:pk>/editar/", painel_views.veiculo_editar, name="painel_veiculo_editar"),
-    path("painel/veiculos/<int:pk>/excluir/", painel_views.veiculo_excluir, name="painel_veiculo_excluir"),
+    path("painel/dashboard/", dashboard.dashboard, name="painel_dashboard"),
+    path("painel/reservas/", reservas.reservas_painel, name="painel_reservas"),
+    path("painel/reservas/nova/", reservas.reserva_nova, name="painel_reserva_nova"),
+    path("painel/reservas/<int:pk>/situacao/", reservas.reserva_situacao, name="painel_reserva_situacao"),
+    path("painel/usuarios/", usuarios.usuarios_painel, name="painel_usuarios"),
+    path("painel/usuarios/novo/", usuarios.usuario_novo, name="painel_usuario_novo"),
+    path("painel/usuarios/<int:pk>/atualizar/", usuarios.usuario_atualizar, name="painel_usuario_atualizar"),
+    path("painel/cadastros/", cadastros.cadastros_inicio, name="painel_cadastros_inicio"),
+    path("painel/cadastros/<str:aba>/", cadastros.cadastros, name="painel_cadastros"),
+    path("painel/cadastros/<str:aba>/<int:pk>/editar/", cadastros.cadastro_editar, name="painel_cadastro_editar"),
+    path("painel/cadastros/<str:aba>/<int:pk>/excluir/", cadastros.cadastro_excluir, name="painel_cadastro_excluir"),
+    path("painel/veiculos/", veiculos.veiculos_painel, name="painel_veiculos"),
+    path("painel/veiculos/<int:pk>/editar/", veiculos.veiculo_editar, name="painel_veiculo_editar"),
+    path("painel/veiculos/<int:pk>/excluir/", veiculos.veiculo_excluir, name="painel_veiculo_excluir"),
 ]

@@ -1,6 +1,5 @@
-from datetime import date
-
 from django.test import TestCase
+from django.utils import timezone
 
 from .fabrica import criar_veiculo
 from .forms import VeiculoForm
@@ -64,13 +63,13 @@ class OutrasValidacoesTests(TestCase):
         return VeiculoForm(data=dados_veiculo(self.base, **extra))
 
     def test_ano_fora_da_faixa(self):
-        proximo = date.today().year + 1
+        proximo = timezone.localdate().year + 1
         for ano in [1980, proximo + 1, 3000]:
             with self.subTest(ano=ano):
                 self.assertIn("ano", self.formulario(ano=ano).errors)
 
     def test_ano_do_modelo_seguinte_e_aceito(self):
-        self.assertTrue(self.formulario(ano=date.today().year + 1).is_valid())
+        self.assertTrue(self.formulario(ano=timezone.localdate().year + 1).is_valid())
 
     def test_quilometragem_nao_pode_ser_negativa(self):
         self.assertIn("quilometragem", self.formulario(quilometragem=-5).errors)

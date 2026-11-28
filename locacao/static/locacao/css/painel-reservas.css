@@ -1,0 +1,78 @@
+/* Estilos de painel/reservas.html (carregado por esse template) */
+.cartoes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 20px; }
+.cartao-stat { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 18px; display: flex; gap: 14px; align-items: center; }
+.cartao-stat .icone { flex: none; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+.cartao-stat strong { font-size: 1.625rem; line-height: 1.1; display: block; }
+.cartao-stat small { font-size: .6875rem; color: var(--suave); }
+.i-total { background: #e0efff; color: #1d5fb3; }
+.i-pendente { background: #fdf0c4; color: #a15c00; }
+.i-confirmada { background: #d9f2e4; color: #1f8a4c; }
+.i-atrasado { background: #fde3c8; color: #c2570c; }
+.i-concluida { background: #ece6fb; color: #6b4fc9; }
+
+
+.filtros { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.campo { display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; background: #fff; color: var(--suave); }
+.campo input, .campo select { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: inherit; font-size: .9rem; color: var(--texto); }
+.filtros .busca { flex: 1; min-width: 220px; }
+
+table { width: 100%; border-collapse: collapse; min-width: 860px; }
+th { text-align: left; font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); padding: 14px 16px; border-bottom: 1px solid var(--borda); }
+td { padding: 14px 16px; border-bottom: 1px solid var(--borda); font-size: .8125rem; vertical-align: middle; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: #f8faf9; }
+td strong { display: block; font-size: .875rem; }
+td small { color: var(--suave); font-size: .6875rem; }
+.veic { display: flex; align-items: center; gap: 10px; }
+.miniatura { width: 40px; height: 28px; border-radius: 6px; background: #f1f3f5; overflow: hidden; display: flex; align-items: center; justify-content: center; flex: none; color: var(--suave); }
+.valor { font-weight: 700; font-size: .875rem; }
+.vazio { padding: 40px; text-align: center; color: var(--suave); }
+
+.badge { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+.badge.confirmada { background: #d9f2e4; color: #1f6f43; }
+.badge.atrasado { background: #fde3c8; color: #a8470a; }
+.badge.concluida { background: #e0efff; color: #1d5fb3; }
+.badge.cancelada { background: #f7b9b9; color: #8c1f1f; }
+
+.rodape-tabela { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; color: var(--suave); font-size: .875rem; }
+.paginas a.atual { background: var(--verde-escuro); border-color: var(--verde-escuro); color: #fff; }
+
+/* Painel lateral */
+.painel { position: sticky; top: 24px; background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 24px; }
+.painel-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.painel-topo h2 { margin: 0; font-size: 1.25rem; }
+.aba { display: inline-block; font-size: .8125rem; font-weight: 600; color: var(--verde); padding-bottom: 6px; border-bottom: 2px solid var(--verde); }
+.aba-linha { border-bottom: 1px solid var(--borda); margin-bottom: 12px; }
+.sec { padding: 10px 0; }
+.sec strong { display: block; font-size: .9375rem; }
+.sec small, .sec .linha { color: var(--suave); font-size: .8125rem; display: block; }
+.sec .linha b { color: var(--texto); }
+.sec .com-img { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.sec .com-img img { width: 72px; height: 48px; object-fit: contain; background: #f1f3f5; border-radius: 6px; }
+.dias { display: inline-block; padding: 2px 10px; border-radius: 6px; background: #e0efff; color: #1d5fb3; font-size: .6875rem; font-weight: 600; }
+.grande { font-size: 1.5rem !important; }
+.alterar { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--borda); }
+.alterar label { display: block; font-size: .8125rem; font-weight: 600; margin-bottom: 6px; }
+.alterar select { width: 100%; height: 44px; padding: 0 14px; border: 1.5px solid var(--verde); border-radius: 8px; font: inherit; background: #fff; }
+.alterar .nota { font-size: .75rem; color: var(--suave); margin: 8px 0 0; }
+.botoes { display: flex; gap: 12px; margin-top: 20px; }
+
+@media (max-width: 1100px) { .cartoes { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1000px) {
+    .painel { position: fixed; z-index: 50; top: 0; right: 0; bottom: 0; width: min(420px, 100%); border-radius: 14px 0 0 14px; overflow-y: auto; box-shadow: -8px 0 30px rgba(0,0,0,.18); }
+}
+@media (max-width: 640px) { .cartoes { grid-template-columns: 1fr 1fr; } }
+/* Pop-up: nova reserva */
+.modal { border: 0; padding: 0; border-radius: 16px; width: min(640px, calc(100% - 32px)); max-height: 94vh; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; color: var(--texto); }
+.modal-topo { display: flex; justify-content: space-between; align-items: center; padding: 22px 32px; border-bottom: 1px solid var(--borda); }
+.modal-topo h2 { margin: 0; font-size: 1.375rem; font-weight: 700; }
+.modal-corpo { padding: 22px 32px; overflow-y: auto; }
+.modal-rodape { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 32px; border-top: 1px solid var(--borda); }
+.grade-form { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grade-form input, .grade-form select { width: 100%; height: 44px; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; font: inherit; font-size: .9375rem; background: #fff; color: var(--texto); }
+.grade-form .filtro-cliente { margin-bottom: 8px; }
+.dica { color: var(--suave); font-size: .75rem; margin-top: 6px; }
+.dica a { color: var(--verde); font-weight: 600; }
+.resumo { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; background: var(--verde-claro); color: var(--verde-escuro); }
+.resumo strong { font-size: 1.25rem; }
+@media (max-width: 560px) { .grade-form { grid-template-columns: 1fr; } .modal-topo, .modal-corpo, .modal-rodape { padding-left: 20px; padding-right: 20px; } }

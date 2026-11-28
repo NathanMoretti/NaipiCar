@@ -1,0 +1,35 @@
+/* Estilos de veiculos.html (carregado por esse template) */
+.nc-modal {
+    border: 0; padding: 0; border-radius: 16px; width: min(680px, calc(100% - 32px)); max-height: 92vh;
+    color: var(--texto); box-shadow: 0 20px 60px rgba(0, 0, 0, .3); overflow: hidden;
+}
+.nc-modal[open] { display: flex; flex-direction: column; }
+.nc-modal::backdrop { background: rgba(10, 30, 25, .55); }
+.nc-paginacao { display: flex; justify-content: center; gap: 8px; margin-top: 32px; }
+.nc-paginacao a, .nc-paginacao span { min-width: 36px; height: 36px; padding: 0 10px; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--suave); }
+.nc-paginacao a { border: 1px solid var(--borda); background: #fff; color: var(--texto); text-decoration: none; }
+.nc-paginacao a:hover { background: var(--verde-claro); }
+.nc-paginacao a.atual { background: var(--verde); border-color: var(--verde); color: #fff; }
+body.nc-modal-aberto { overflow: hidden; }
+.nc-modal [hidden] { display: none !important; }
+.nc-modal form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.nc-modal-topo { display: flex; justify-content: space-between; align-items: center; padding: 20px 32px; border-bottom: 1px solid var(--borda); }
+.nc-modal-topo h2 { margin: 0; font-size: 1.375rem; font-weight: 700; }
+.nc-modal-x { border: 0; background: #eef1f3; width: 32px; height: 32px; border-radius: 50%; color: var(--suave); cursor: pointer; font-size: 1rem; }
+.nc-modal-x:hover { background: #e1e6ea; color: var(--texto); }
+.nc-modal-corpo { padding: 24px 32px; overflow-y: auto; }
+.nc-modal-foto { height: 210px; background: #f1f3f5; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 20px; }
+.nc-modal-foto img { width: 100%; height: 100%; object-fit: contain; }
+.nc-info { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; margin: 0 0 20px; }
+.nc-info dt { font-size: .75rem; font-weight: 600; color: var(--suave); margin-bottom: 4px; }
+.nc-info dd { margin: 0; padding: 10px 14px; border: 1px solid var(--borda); border-radius: 8px; background: #fafbfc; font-size: .9375rem; }
+.nc-info .destaque { color: var(--verde-escuro); font-weight: 700; }
+.nc-reservar-titulo { font-size: .9375rem; font-weight: 700; margin: 8px 0 12px; }
+.nc-reservando { display: flex; gap: 10px; align-items: center; background: var(--verde-claro); color: var(--verde-escuro); border-radius: 8px; padding: 10px 14px; font-size: .875rem; margin-bottom: 14px; }
+.nc-datas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; }
+.nc-datas label { display: block; font-size: .75rem; font-weight: 600; color: var(--suave); margin-bottom: 4px; }
+.nc-datas input { width: 100%; height: 44px; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; font: inherit; }
+.nc-total { margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: #f3f5f7; font-size: .9375rem; min-height: 46px; }
+.nc-aviso { padding: 14px; border-radius: 8px; background: #fff3c4; color: #7a5d00; font-size: .9rem; }
+.nc-modal-rodape { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 32px; border-top: 1px solid var(--borda); background: #fff; }
+@media (max-width: 560px) { .nc-info, .nc-datas { grid-template-columns: 1fr; } .nc-modal-topo, .nc-modal-corpo, .nc-modal-rodape { padding-left: 20px; padding-right: 20px; } }
