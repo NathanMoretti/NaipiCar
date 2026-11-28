@@ -6,3 +6,6 @@ __pycache__/
 # Banco local: cada um gera o seu com migrate + importar_carros (+ popular_dados)
 db.sqlite3
 db.sqlite3-journal
+
+# Gerado pelo collectstatic na hora de publicar
+staticfiles/

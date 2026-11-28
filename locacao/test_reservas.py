@@ -6,6 +6,8 @@ from django.urls import reverse
 from .fabrica import criar_cliente, criar_reserva, criar_veiculo, dia
 from .models import Reserva
 
+Status = Reserva.Status
+
 
 class ReservarVeiculoTests(TestCase):
     def setUp(self):
@@ -39,7 +41,7 @@ class ReservarVeiculoTests(TestCase):
         self.assertEqual(reserva.nome_cliente, "Maria Silva")
         self.assertEqual(reserva.email_cliente, "cliente@teste.com")
         self.assertEqual(reserva.valor_total, Decimal("450.00"))
-        self.assertEqual(reserva.status, "Pendente")
+        self.assertEqual(reserva.status, Status.PENDENTE)
 
     def test_recusa_periodo_ja_ocupado(self):
         self.client.force_login(self.cliente)
@@ -56,10 +58,10 @@ class ReservarVeiculoTests(TestCase):
 
     def test_reserva_cancelada_libera_o_periodo(self):
         outro = criar_cliente(email="outro@teste.com", cpf="11144477735")
-        criar_reserva(self.veiculo, outro, dia(1), dia(4), status="Cancelada")
+        criar_reserva(self.veiculo, outro, dia(1), dia(4), status=Status.CANCELADA)
         self.client.force_login(self.cliente)
         self.reservar(dia(2), dia(5))
-        self.assertEqual(Reserva.objects.exclude(status="Cancelada").count(), 1)
+        self.assertEqual(Reserva.objects.exclude(status=Status.CANCELADA).count(), 1)
 
     def test_recusa_retirada_no_passado(self):
         self.client.force_login(self.cliente)
@@ -95,29 +97,29 @@ class CancelarReservaTests(TestCase):
         return self.client.post(reverse("cancelar_reserva", args=[reserva.id]))
 
     def test_dono_cancela_reserva_futura(self):
-        reserva = criar_reserva(self.veiculo, self.cliente, dia(2), dia(4), status="Pendente")
+        reserva = criar_reserva(self.veiculo, self.cliente, dia(2), dia(4), status=Status.PENDENTE)
         self.cancelar(reserva)
         reserva.refresh_from_db()
-        self.assertEqual(reserva.status, "Cancelada")
+        self.assertEqual(reserva.status, Status.CANCELADA)
 
     def test_nao_cancela_reserva_de_outra_pessoa(self):
         outro = criar_cliente(email="outro@teste.com", cpf="11144477735")
-        reserva = criar_reserva(self.veiculo, outro, dia(2), dia(4), status="Confirmada")
+        reserva = criar_reserva(self.veiculo, outro, dia(2), dia(4), status=Status.CONFIRMADA)
         self.assertEqual(self.cancelar(reserva).status_code, 404)
         reserva.refresh_from_db()
-        self.assertEqual(reserva.status, "Confirmada")
+        self.assertEqual(reserva.status, Status.CONFIRMADA)
 
     def test_nao_cancela_reserva_que_ja_comecou(self):
-        reserva = criar_reserva(self.veiculo, self.cliente, dia(-1), dia(2), status="Confirmada")
+        reserva = criar_reserva(self.veiculo, self.cliente, dia(-1), dia(2), status=Status.CONFIRMADA)
         self.cancelar(reserva)
         reserva.refresh_from_db()
-        self.assertEqual(reserva.status, "Confirmada")
+        self.assertEqual(reserva.status, Status.CONFIRMADA)
 
     def test_nao_cancela_reserva_concluida(self):
-        reserva = criar_reserva(self.veiculo, self.cliente, dia(5), dia(7), status="Concluída")
+        reserva = criar_reserva(self.veiculo, self.cliente, dia(5), dia(7), status=Status.CONCLUIDA)
         self.cancelar(reserva)
         reserva.refresh_from_db()
-        self.assertEqual(reserva.status, "Concluída")
+        self.assertEqual(reserva.status, Status.CONCLUIDA)
 
     def test_so_aceita_post(self):
         reserva = criar_reserva(self.veiculo, self.cliente, dia(2), dia(4))
@@ -149,7 +151,7 @@ class ListaDeVeiculosTests(TestCase):
         ocupado = criar_veiculo(placa="AAA1A11", modelo="Compass")
         livre = criar_veiculo(placa="BBB2B22", modelo="Renegade")
         cliente = criar_cliente()
-        criar_reserva(ocupado, cliente, dia(2), dia(5), status="Confirmada")
+        criar_reserva(ocupado, cliente, dia(2), dia(5), status=Status.CONFIRMADA)
 
         resposta = self.client.get(reverse("veiculos"), {
             "retirada": dia(3).isoformat(),

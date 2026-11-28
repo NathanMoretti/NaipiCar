@@ -1,53 +1,10 @@
 {% extends 'locacao/painel/base_painel.html' %}
+{% load static %}
 
 {% block titulo %}Cadastros - Painel NaipiCar{% endblock %}
 
 {% block extra_head %}
-<style>
-    .abas { display: flex; gap: 28px; border-bottom: 1px solid var(--borda); margin-bottom: 20px; overflow-x: auto; }
-    .abas a { padding: 8px 0; margin-bottom: -1px; color: var(--suave); font-weight: 600; border-bottom: 2px solid transparent; white-space: nowrap; }
-    .abas a.ativa { color: var(--verde); border-bottom-color: var(--verde); }
-
-    .filtros { background: #fff; border: 1px solid var(--borda); border-radius: 14px; padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 12px; align-items: center; }
-    .campo { flex: 1; display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; color: var(--suave); }
-    .campo input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: inherit; font-size: .9rem; color: var(--texto); }
-
-    .tabela-caixa { background: #fff; border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; }
-    .rolagem { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 560px; }
-    th { text-align: left; font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase; color: var(--suave); padding: 14px 20px; border-bottom: 1px solid var(--borda); }
-    td { padding: 14px 20px; border-bottom: 1px solid var(--borda); font-size: .875rem; vertical-align: middle; }
-    tbody tr:last-child td { border-bottom: 0; }
-    td:first-child { font-weight: 600; }
-    .acoes { display: flex; gap: 8px; justify-content: flex-end; }
-    .acoes form { margin: 0; }
-    .icone-btn { width: 32px; height: 32px; border: 0; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: .95rem; }
-    .icone-btn.editar { background: var(--verde-claro); color: var(--verde); }
-    .icone-btn.excluir { background: #fbdcdc; color: #c0392b; }
-    .vazio { padding: 40px; text-align: center; color: var(--suave); }
-    .rodape-tabela { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 20px; border-top: 1px solid var(--borda); color: var(--suave); font-size: .875rem; }
-    .paginas { display: flex; gap: 8px; align-items: center; }
-    .paginas a, .paginas span { min-width: 32px; height: 32px; padding: 0 8px; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
-    .paginas a { border: 1px solid var(--borda); background: #fff; }
-    .paginas a.atual { background: var(--verde); border-color: var(--verde); color: #fff; }
-
-    .modal { border: 0; padding: 0; border-radius: 16px; width: min(520px, calc(100% - 32px)); max-height: 94vh; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; color: var(--texto); }
-    .modal[open] { display: flex; flex-direction: column; }
-    .modal::backdrop { background: rgba(10, 30, 25, .55); }
-    .modal form { display: flex; flex-direction: column; min-height: 0; flex: 1; margin: 0; }
-    .modal-topo { display: flex; justify-content: space-between; align-items: center; padding: 22px 28px; border-bottom: 1px solid var(--borda); }
-    .modal-topo h2 { margin: 0; font-size: 1.25rem; font-weight: 700; }
-    .modal-x { border: 0; background: #eef1f3; width: 32px; height: 32px; border-radius: 50%; color: var(--suave); cursor: pointer; }
-    .modal-x:hover { background: #e1e6ea; color: var(--texto); }
-    .modal-corpo { padding: 22px 28px; overflow-y: auto; display: grid; gap: 16px; }
-    .modal-rodape { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 28px; border-top: 1px solid var(--borda); }
-    .modal label { display: block; font-size: .8125rem; font-weight: 600; margin-bottom: 6px; }
-    .modal input, .modal select, .modal textarea { width: 100%; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; font: inherit; font-size: .9375rem; background: #fff; color: var(--texto); }
-    .modal input, .modal select { height: 44px; }
-    .modal textarea { padding: 12px 14px; resize: vertical; }
-    .erro-campo { color: var(--erro); font-size: .75rem; margin-top: 4px; }
-    .modal [hidden] { display: none !important; }
-</style>
+<link rel="stylesheet" href="{% static 'locacao/css/painel-cadastros.css' %}">
 {% endblock %}
 
 {% block conteudo %}
@@ -145,55 +102,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-(function () {
-    var modal = document.getElementById("modal");
-    var form = document.getElementById("m-form");
-    var iniciais = JSON.parse(JSON.parse(document.getElementById("dados-iniciais").textContent));
-    var singular = modal.dataset.singular;
-
-    function $(id) { return document.getElementById(id); }
-
-    function preencher(valores) {
-        Object.keys(iniciais).forEach(function (nome) {
-            var campo = $("id_" + nome);
-            if (!campo) return;
-            var v = valores[nome];
-            campo.value = (v === null || v === undefined) ? "" : v;
-        });
-        modal.querySelectorAll(".erro-campo, .pl-alerta").forEach(function (e) { e.remove(); });
-    }
-
-    $("btn-novo").addEventListener("click", function () {
-        preencher(iniciais);
-        form.action = modal.dataset.urlNovo;
-        $("m-titulo").textContent = "Cadastrar " + singular;
-        $("m-enviar").textContent = "Cadastrar";
-        modal.showModal();
-    });
-
-    document.querySelectorAll(".js-editar").forEach(function (botao) {
-        botao.addEventListener("click", function () {
-            var linha = botao.closest("tr");
-            preencher(JSON.parse(linha.dataset.valores));
-            form.action = linha.dataset.urlEditar;
-            $("m-titulo").textContent = "Editar " + singular;
-            $("m-enviar").textContent = "Salvar alterações";
-            modal.showModal();
-        });
-    });
-
-    document.querySelectorAll(".js-excluir").forEach(function (f) {
-        f.addEventListener("submit", function (e) {
-            if (!confirm("Excluir " + f.dataset.nome + "? Essa ação não pode ser desfeita.")) e.preventDefault();
-        });
-    });
-
-    $("m-fechar").addEventListener("click", function () { modal.close(); });
-    $("m-cancelar").addEventListener("click", function () { modal.close(); });
-    modal.addEventListener("click", function (e) { if (e.target === modal) modal.close(); });
-
-    if (modal.dataset.abrir) modal.showModal();
-})();
-</script>
+<script src="{% static 'locacao/js/painel-cadastros.js' %}"></script>
 {% endblock %}

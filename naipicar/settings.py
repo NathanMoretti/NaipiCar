@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -26,14 +27,43 @@ load_dotenv(BASE_DIR / '.env')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# A chave padrão serve só para desenvolvimento; em produção defina SECRET_KEY no .env.
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-chave-somente-para-desenvolvimento')
+def _sim(nome, padrao):
+    """Lê uma variável do .env como verdadeiro/falso (True, true, 1, sim, yes)."""
+    return os.getenv(nome, padrao).strip().lower() in ('1', 'true', 'sim', 'yes')
+
+
+def _lista(nome):
+    """Lê uma variável do .env separada por vírgulas."""
+    return [item.strip() for item in os.getenv(nome, '').split(',') if item.strip()]
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True').lower() in ('1', 'true', 'sim', 'yes')
+DEBUG = _sim('DEBUG', 'True')
 
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h.strip()]
+# SECURITY WARNING: keep the secret key used in production secret!
+# A chave padrão serve só para desenvolvimento. Com DEBUG=False o sistema não inicia sem
+# uma SECRET_KEY própria no .env, para não publicar o site com uma chave conhecida.
+CHAVE_DE_DESENVOLVIMENTO = 'django-insecure-chave-somente-para-desenvolvimento'
+SECRET_KEY = os.getenv('SECRET_KEY', CHAVE_DE_DESENVOLVIMENTO)
+if not DEBUG and SECRET_KEY in (CHAVE_DE_DESENVOLVIMENTO, 'troque-por-uma-chave-secreta', ''):
+    raise ImproperlyConfigured(
+        'Com DEBUG=False, defina uma SECRET_KEY própria no .env (veja como gerar no .env.example).')
+
+ALLOWED_HOSTS = _lista('ALLOWED_HOSTS')
+# Endereços completos do site publicado (ex.: https://naipicar.pythonanywhere.com), para os formulários
+CSRF_TRUSTED_ORIGINS = _lista('CSRF_TRUSTED_ORIGINS')
+
+# Proteções para quando o site estiver publicado com HTTPS (USAR_HTTPS=True no .env).
+# Ficam desligadas por padrão porque no computador de vocês o site roda sem HTTPS.
+if _sim('USAR_HTTPS', 'False'):
+    SECURE_SSL_REDIRECT = True          # http:// vira https://
+    SESSION_COOKIE_SECURE = True        # cookie de login só trafega por HTTPS
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 3600          # o navegador passa a usar só HTTPS por 1 hora (aumente quando estiver estável)
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # servidores como o PythonAnywhere
+    # Avisos silenciados de propósito: incluir subdomínios e entrar na lista "preload" dos navegadores
+    # são difíceis de desfazer e não fazem sentido num subdomínio compartilhado (ex.: *.pythonanywhere.com).
+    SILENCED_SYSTEM_CHECKS = ['security.W005', 'security.W021']
 
 
 # Application definition
@@ -149,6 +179,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+# Pasta onde o "python manage.py collectstatic" junta os arquivos estáticos para publicar
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
 # Email

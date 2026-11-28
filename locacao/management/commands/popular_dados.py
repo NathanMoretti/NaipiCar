@@ -17,6 +17,8 @@ from contas.models import Address
 from locacao.models import (Categoria, CategoriaClasse, ClasseCarro, Marca,
                             ModeloCarro, Reserva, Veiculo)
 
+Status = Reserva.Status
+
 SENHA_PADRAO = 'Senha@123'  # cumpre a RN04: 8+ caracteres, maiúscula, número e símbolo
 
 CATEGORIAS = {
@@ -85,16 +87,16 @@ CLIENTES = [
 
 # (e-mail, placa, início em dias a partir de hoje, fim, situação)
 RESERVAS = [
-    ('lucas.almeida@email.com', 'PYC7G89', -60, -57, 'Concluída'),
-    ('lucas.almeida@email.com', 'PYC7G89', -1, 2, 'Confirmada'),
-    ('mariana.sousa@email.com', 'CAT3C45', -30, -28, 'Concluída'),
-    ('mariana.sousa@email.com', 'CAR1K12', 5, 8, 'Pendente'),
-    ('carla.mendes@email.com', 'CAT3C45', -20, -17, 'Concluída'),
-    ('rafael.costa@email.com', 'BRA5E67', -45, -42, 'Concluída'),
-    ('rafael.costa@email.com', 'BRA5E67', 3, 6, 'Cancelada'),
-    ('ana.ribeiro@email.com', 'PRA4D56', -12, -10, 'Concluída'),
-    ('ana.ribeiro@email.com', 'PIC9J01', 10, 15, 'Confirmada'),
-    ('joao.silva@email.com', 'RES2L23', 2, 4, 'Pendente'),
+    ('lucas.almeida@email.com', 'PYC7G89', -60, -57, Status.CONCLUIDA),
+    ('lucas.almeida@email.com', 'PYC7G89', -1, 2, Status.CONFIRMADA),
+    ('mariana.sousa@email.com', 'CAT3C45', -30, -28, Status.CONCLUIDA),
+    ('mariana.sousa@email.com', 'CAR1K12', 5, 8, Status.PENDENTE),
+    ('carla.mendes@email.com', 'CAT3C45', -20, -17, Status.CONCLUIDA),
+    ('rafael.costa@email.com', 'BRA5E67', -45, -42, Status.CONCLUIDA),
+    ('rafael.costa@email.com', 'BRA5E67', 3, 6, Status.CANCELADA),
+    ('ana.ribeiro@email.com', 'PRA4D56', -12, -10, Status.CONCLUIDA),
+    ('ana.ribeiro@email.com', 'PIC9J01', 10, 15, Status.CONFIRMADA),
+    ('joao.silva@email.com', 'RES2L23', 2, 4, Status.PENDENTE),
 ]
 
 

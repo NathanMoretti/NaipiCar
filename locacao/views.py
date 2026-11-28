@@ -1,18 +1,19 @@
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldDoesNotExist
-from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 
+from .apoio import destino_seguro, paginar
 from .models import Categoria, Marca, Reserva, Veiculo
 from .regras import ReservaInvalida, criar_reserva
+
+Status = Reserva.Status
 
 
 def _faixa(valores):
@@ -123,26 +124,22 @@ def veiculos(request):
     if retirada and devolucao and retirada <= devolucao:
         ocupados = (
             Reserva.objects.filter(data_retirada__lte=devolucao, data_devolucao__gte=retirada)
-            .exclude(status="Cancelada")
+            .exclude(status=Status.CANCELADA)
             .values_list("veiculo_id", flat=True)
         )
         lista = lista.exclude(id__in=ocupados)
 
     lista = lista.order_by(*ORDENACOES.get(ordem, ORDENACOES["nome"]))
-    pagina = Paginator(lista, 9).get_page(get.get("page"))
+    paginacao = paginar(request, lista, 9)
+    pagina = paginacao["pagina"]
 
     avancados = [bool(marca), bool(motorizacao), bool(assentos), bool(malas), preco_max is not None,
                  bool(q), ordem in ORDENACOES and ordem != "nome", incluir_indisponiveis]
-    params = get.copy()
-    params.pop("page", None)
 
     return render(request, "locacao/veiculos.html", {
         **opcoes,
         "veiculos": list(pagina.object_list),
-        "pagina": pagina,
-        "paginas": list(pagina.paginator.get_elided_page_range(pagina.number, on_each_side=1, on_ends=1)),
-        "reticencias": pagina.paginator.ELLIPSIS,
-        "querystring": params.urlencode(),
+        **paginacao,
         "filtro": {
             "retirada": retirada or "",
             "devolucao": devolucao or "",
@@ -162,20 +159,12 @@ def veiculos(request):
     })
 
 
-def _destino_voltar(request):
-    """Volta para a página de onde o cliente veio (só endereços do próprio site)."""
-    destino = request.POST.get("voltar", "")
-    if destino and url_has_allowed_host_and_scheme(destino, allowed_hosts={request.get_host()}):
-        return destino
-    return reverse("veiculos")
-
-
 @login_required(login_url="login")
 @require_POST
 def reservar_veiculo(request, veiculo_id):
     """Cria a reserva com os dados da conta do cliente logado (regras em regras.py)."""
     get_object_or_404(Veiculo, id=veiculo_id)
-    voltar = _destino_voltar(request)
+    voltar = destino_seguro(request, "veiculos")
 
     try:
         d1 = datetime.strptime(request.POST.get("data_retirada", ""), "%Y-%m-%d").date()
@@ -185,7 +174,7 @@ def reservar_veiculo(request, veiculo_id):
         return redirect(voltar)
 
     try:
-        criar_reserva(veiculo_id, request.user, d1, d2, status="Pendente")
+        criar_reserva(veiculo_id, request.user, d1, d2, status=Status.PENDENTE)
     except ReservaInvalida as erro:
         messages.error(request, str(erro))
         return redirect(voltar)
@@ -196,10 +185,10 @@ def reservar_veiculo(request, veiculo_id):
 
 # Como cada situação do banco aparece para o cliente: (texto, classe CSS)
 ROTULOS_STATUS = {
-    "Pendente": ("Em análise", "pendente"),
-    "Confirmada": ("Reservada", "confirmada"),
-    "Concluída": ("Concluída", "concluida"),
-    "Cancelada": ("Cancelada", "cancelada"),
+    Status.PENDENTE: ("Em análise", "pendente"),
+    Status.CONFIRMADA: ("Reservada", "confirmada"),
+    Status.CONCLUIDA: ("Concluída", "concluida"),
+    Status.CANCELADA: ("Cancelada", "cancelada"),
 }
 
 
@@ -214,20 +203,21 @@ def minhas_reservas(request):
 
     aba = request.GET.get("aba", "todas")
     if aba == "atuais":
-        lista = lista.filter(status__in=["Pendente", "Confirmada"])
+        lista = lista.filter(status__in=Reserva.EM_ABERTO)
     elif aba == "historico":
-        lista = lista.filter(status__in=["Concluída", "Cancelada"])
+        lista = lista.filter(status__in=Reserva.FINALIZADAS)
     else:
         aba = "todas"
 
-    pagina = Paginator(lista, 6).get_page(request.GET.get("page"))
+    paginacao = paginar(request, lista, 6)
+    pagina = paginacao["pagina"]
     itens = list(pagina.object_list)
-    hoje = date.today()
+    hoje = timezone.localdate()
     for r in itens:
         r.dias = max((r.data_devolucao - r.data_retirada).days, 1)
         r.diaria_calculada = r.valor_total / r.dias
         r.rotulo, r.classe = ROTULOS_STATUS.get(r.status, (r.status, "concluida"))
-        r.cancelavel = r.status in ("Pendente", "Confirmada") and r.data_retirada >= hoje
+        r.cancelavel = r.status in Reserva.EM_ABERTO and r.data_retirada >= hoje
 
     return render(request, "locacao/minhas_reservas.html", {
         "reservas": itens,
@@ -241,8 +231,8 @@ def minhas_reservas(request):
 def cancelar_reserva(request, reserva_id):
     # Só o dono da reserva pode cancelar, e só antes da retirada
     reserva = get_object_or_404(Reserva, id=reserva_id, cliente=request.user)
-    if reserva.status in ("Pendente", "Confirmada") and reserva.data_retirada >= date.today():
-        reserva.status = "Cancelada"
+    if reserva.status in Reserva.EM_ABERTO and reserva.data_retirada >= timezone.localdate():
+        reserva.status = Status.CANCELADA
         reserva.save(update_fields=["status"])
         messages.success(request, f"Reserva RES-{reserva.id:04d} cancelada.")
     else:
