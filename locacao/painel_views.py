@@ -15,9 +15,12 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
+from contas.forms import UsuarioPainelForm
+from contas.forms_senha import enviar_link_criar_senha
 from contas.models import User
 
 from .forms import (
+    ReservaPainelForm,
     CategoriaClasseForm,
     CategoriaForm,
     ClasseCarroForm,
@@ -26,6 +29,7 @@ from .forms import (
     VeiculoForm,
 )
 from .models import Categoria, CategoriaClasse, ClasseCarro, Marca, ModeloCarro, Reserva, Veiculo
+from .regras import ReservaInvalida, criar_reserva
 
 def somente_admin(view):
     """Só administradores (is_staff) entram.
@@ -462,8 +466,7 @@ def dashboard(request):
 # ---------------------------------------------------------------------------
 # Reservas
 # ---------------------------------------------------------------------------
-@somente_admin
-def reservas_painel(request):
+def _contexto_reservas(request, form=None):
     hoje = date.today()
     lista = Reserva.objects.select_related(
         "cliente", "veiculo__modelo__marca", "veiculo__categoria_classe__categoria"
@@ -516,7 +519,15 @@ def reservas_painel(request):
     params = request.GET.copy()
     params.pop("page", None)
 
-    return render(request, "locacao/painel/reservas.html", {
+    # Pop-up "Nova reserva": abre sozinho quando houve erro ou quando vem do cadastro de cliente
+    abrir_nova = form is not None or request.GET.get("nova") == "1"
+    if form is None:
+        form = ReservaPainelForm(initial={"cliente": request.GET.get("cliente") or None})
+
+    return {
+        "form_reserva": form,
+        "abrir_nova": abrir_nova,
+        "diarias_veiculos": {str(v.id): float(v.diaria) for v in form.fields["veiculo"].queryset},
         "reservas": itens,
         "pagina": pagina,
         "paginas": list(pagina.paginator.get_elided_page_range(pagina.number, on_each_side=1, on_ends=1)),
@@ -531,7 +542,34 @@ def reservas_painel(request):
             "concluidas": todas.filter(status="Concluída").count(),
         },
         "rotulos": {k: v[0] for k, v in ROTULOS_SITUACAO.items()},
-    })
+    }
+
+
+@somente_admin
+def reservas_painel(request):
+    return render(request, "locacao/painel/reservas.html", _contexto_reservas(request))
+
+
+@somente_admin
+@require_POST
+def reserva_nova(request):
+    """Reserva criada pelo administrador (cliente no balcão). Segue as mesmas regras do site."""
+    form = ReservaPainelForm(request.POST)
+    if form.is_valid():
+        d = form.cleaned_data
+        try:
+            reserva = criar_reserva(
+                d["veiculo"].id, d["cliente"], d["data_retirada"], d["data_devolucao"], status=d["status"])
+        except ReservaInvalida as erro:
+            form.add_error(None, str(erro))
+        else:
+            messages.success(
+                request,
+                f"Reserva RES-{reserva.id:04d} criada para {reserva.nome_cliente}: "
+                f"{reserva.veiculo.modelo}, {_reais(reserva.valor_total)}.",
+            )
+            return redirect("painel_reservas")
+    return render(request, "locacao/painel/reservas.html", _contexto_reservas(request, form))
 
 
 @somente_admin
@@ -729,8 +767,7 @@ SITUACOES_USUARIO = {
 }
 
 
-@somente_admin
-def usuarios_painel(request):
+def _contexto_usuarios(request, form=None):
     lista = User.objects.select_related("address").order_by("first_name", "last_name")
 
     q = request.GET.get("q", "").strip()
@@ -781,7 +818,14 @@ def usuarios_painel(request):
     params = request.GET.copy()
     params.pop("page", None)
 
-    return render(request, "locacao/painel/usuarios.html", {
+    # Pop-up "Novo usuário": abre sozinho quando houve erro ou quando vem da Nova reserva
+    para_reserva = request.POST.get("para_reserva") == "1" or request.GET.get("para") == "reserva"
+    abrir_novo = form is not None or request.GET.get("novo") == "1"
+
+    return {
+        "form_usuario": form or UsuarioPainelForm(),
+        "abrir_novo": abrir_novo,
+        "para_reserva": para_reserva,
         "usuarios": itens,
         "pagina": pagina,
         "paginas": list(pagina.paginator.get_elided_page_range(pagina.number, on_each_side=1, on_ends=1)),
@@ -796,7 +840,38 @@ def usuarios_painel(request):
         },
         "ADMIN": User.ADMIN,
         "USER": User.USER,
-    })
+    }
+
+
+@somente_admin
+def usuarios_painel(request):
+    return render(request, "locacao/painel/usuarios.html", _contexto_usuarios(request))
+
+
+@somente_admin
+@require_POST
+def usuario_novo(request):
+    """Cadastro feito pelo administrador. A conta nasce sem senha e a pessoa recebe o link por e-mail."""
+    form = UsuarioPainelForm(request.POST)
+    if not form.is_valid():
+        return render(request, "locacao/painel/usuarios.html", _contexto_usuarios(request, form))
+
+    usuario = form.save()
+    try:
+        enviar_link_criar_senha(request, usuario)
+        messages.success(
+            request, f"Conta de {usuario.full_name} criada. Enviamos para {usuario.email} o link para criar a senha.")
+    except Exception:  # falha no servidor de e-mail não pode desfazer o cadastro
+        messages.warning(
+            request,
+            f"Conta de {usuario.full_name} criada, mas não foi possível enviar o e-mail. "
+            "Peça para a pessoa usar \"Esqueci minha senha\" na tela de login.",
+        )
+
+    if request.POST.get("para_reserva") == "1" and usuario.profile_type == User.USER:
+        # Volta para a Nova reserva com o cliente recém-cadastrado já escolhido
+        return redirect(f"{reverse('painel_reservas')}?nova=1&cliente={usuario.pk}")
+    return redirect("painel_usuarios")
 
 
 @somente_admin

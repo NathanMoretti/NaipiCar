@@ -146,3 +146,42 @@ class CadastroForm(forms.Form):
         return User.objects.create_user(
             d['email'], d['password1'], first_name=nome, last_name=sobrenome,
             cpf=d['cpf'], phone=d['phone'], address=endereco, profile_type=User.USER)
+
+
+class UsuarioPainelForm(CadastroForm):
+    """Cadastro feito pelo administrador no painel (cliente no balcão, por exemplo).
+
+    Usa os mesmos campos e validações do cadastro do site, menos a senha: a conta nasce sem
+    senha e a pessoa recebe por e-mail um link para criar a própria senha. Assim o
+    administrador nunca fica sabendo a senha do cliente.
+    """
+    profile_type = forms.TypedChoiceField(
+        label='Perfil', choices=User.PROFILE_CHOICES, coerce=int, initial=User.USER)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        del self.fields['password1']
+        del self.fields['password2']
+        self.fields['full_name'].widget.attrs['placeholder'] = 'Nome e sobrenome'
+        self.fields['email'].widget.attrs['placeholder'] = 'email@cliente.com'
+        self.fields['email'].help_text = 'O link para criar a senha será enviado para este e-mail.'
+        self.fields['accept_terms'].label = (
+            'A pessoa foi informada e concorda com os Termos de uso e a Política de privacidade.')
+        self.fields['accept_terms'].error_messages['required'] = (
+            'Confirme que a pessoa concorda com os termos de uso.')
+
+    def clean(self):
+        return forms.Form.clean(self)  # sem a validação de senha do cadastro do site
+
+    @transaction.atomic
+    def save(self):
+        d = self.cleaned_data
+        nome, _, sobrenome = d['full_name'].partition(' ')
+        endereco = Address.objects.create(
+            street=d['street'], number=d['number'], complement=d['complement'],
+            neighborhood=d['neighborhood'], city=d['city'], state=d['state'],
+            zip_code=d['zip_code'])
+        # Sem senha (password=None): a pessoa cria a dela pelo link enviado por e-mail
+        return User.objects.create_user(
+            d['email'], None, first_name=nome, last_name=sobrenome,
+            cpf=d['cpf'], phone=d['phone'], address=endereco, profile_type=d['profile_type'])

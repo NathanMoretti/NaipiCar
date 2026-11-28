@@ -5,6 +5,8 @@ from django import forms
 from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.core.files.uploadedfile import UploadedFile
 
+from contas.models import User
+
 from .models import Categoria, CategoriaClasse, ClasseCarro, Marca, ModeloCarro, Veiculo
 
 TAMANHO_MAXIMO_FOTO = 5 * 1024 * 1024  # 5 MB
@@ -226,3 +228,42 @@ class CategoriaClasseForm(forms.ModelForm):
         if valor is not None and valor <= 0:
             raise ValidationError("A diária deve ser maior que zero.")
         return valor
+
+class ReservaPainelForm(forms.Form):
+    """Reserva criada pelo administrador (cliente no balcão, telefone ou WhatsApp).
+
+    As regras do período (datas, veículo livre) ficam em regras.criar_reserva, as mesmas do site.
+    """
+
+    SITUACOES = [("Confirmada", "Reservado (confirmada)"), ("Pendente", "Em análise (aguardando sinal)")]
+
+    cliente = forms.ModelChoiceField(
+        label="Cliente", queryset=None, empty_label="Selecione o cliente",
+        error_messages={"required": "Escolha o cliente.", "invalid_choice": "Escolha um cliente ativo da lista."})
+    veiculo = forms.ModelChoiceField(
+        label="Veículo", queryset=None, empty_label="Selecione o veículo",
+        error_messages={"required": "Escolha o veículo.", "invalid_choice": "Escolha um veículo disponível da lista."})
+    data_retirada = forms.DateField(
+        label="Retirada", widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+        error_messages={"required": "Informe a data de retirada.", "invalid": "Informe uma data válida."})
+    data_devolucao = forms.DateField(
+        label="Devolução", widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+        error_messages={"required": "Informe a data de devolução.", "invalid": "Informe uma data válida."})
+    status = forms.ChoiceField(label="Situação", choices=SITUACOES, initial="Confirmada")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["cliente"].queryset = User.objects.filter(
+            profile_type=User.USER, status=User.ACTIVE).order_by("first_name", "last_name")
+        self.fields["cliente"].label_from_instance = lambda u: f"{u.full_name} · CPF {u.cpf} · {u.email}"
+        self.fields["veiculo"].queryset = (
+            Veiculo.objects.filter(disponivel=True, categoria_classe__isnull=False)
+            .select_related("modelo__marca", "categoria_classe").order_by("modelo__marca__nome", "modelo__nome"))
+        self.fields["veiculo"].label_from_instance = self._rotulo_veiculo
+        self.fields["data_retirada"].widget.attrs["min"] = date.today().isoformat()
+        self.fields["data_devolucao"].widget.attrs["min"] = date.today().isoformat()
+
+    @staticmethod
+    def _rotulo_veiculo(v):
+        diaria = f"{v.diaria:.2f}".replace(".", ",")
+        return f"{v.modelo} · {v.placa or 'sem placa'} · R$ {diaria}/dia"
