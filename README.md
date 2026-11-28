@@ -34,7 +34,8 @@ O NaipiCar propõe um ambiente digital para:
 | — | Recuperação de senha por e-mail | Pronto |
 | — | Usuários no painel (busca, situação e perfil da conta) | Pronto |
 | — | Cadastros no painel (marcas, modelos, categorias, classes e diárias) | Pronto |
-| — | Reservas e usuários criados pelo administrador | Planejado |
+| — | Reservas criadas pelo administrador (cliente no balcão, telefone ou WhatsApp), com as mesmas regras do site e prévia do valor | Pronto |
+| — | Usuários cadastrados pelo administrador: a conta nasce sem senha e a pessoa recebe um link por e-mail para criar a própria | Pronto |
 
 O valor total da reserva é calculado automaticamente (número de diárias × diária da categoria/classe do veículo).
 
@@ -256,7 +257,7 @@ Em desenvolvimento, os e-mails (como o link de recuperação de senha) aparecem 
 python manage.py test
 ```
 
-Os testes cobrem as regras de reserva (período ocupado, datas, cancelamento, pedidos simultâneos), a proteção do histórico de reservas, os filtros do catálogo, as categorias da página inicial, os cálculos do dashboard, a validação de placa, as permissões do painel, os bloqueios de exclusão, a recuperação de senha e a edição de perfil. Eles usam um banco temporário e não alteram os seus dados. O teste de pedidos simultâneos só roda com MySQL (no SQLite ele aparece como *skipped*).
+Os testes cobrem as regras de reserva (período ocupado, datas, cancelamento, pedidos simultâneos), a proteção do histórico de reservas, os filtros do catálogo, as categorias da página inicial, os cálculos do dashboard, a validação de placa, as permissões do painel, os bloqueios de exclusão, a recuperação de senha, a edição de perfil e as reservas e usuários criados pelo administrador. Eles usam um banco temporário e não alteram os seus dados. O teste de pedidos simultâneos só roda com MySQL (no SQLite ele aparece como *skipped*).
 
 ## Estrutura do projeto
 
@@ -277,6 +278,7 @@ NaipiCar/
 │   └── views.py, views_perfil.py, validators.py
 ├── locacao/                   # frota, reservas e painel
 │   ├── models.py              # Marca, Modelo, Categoria, Classe, Veículo, Reserva
+│   ├── regras.py              # regras da reserva (usadas pelo site e pelo painel)
 │   ├── views.py               # site do cliente
 │   ├── painel_views.py        # painel administrativo
 │   ├── forms.py               # formulários do painel
@@ -302,6 +304,7 @@ O banco segue o dicionário de dados do projeto:
 
 - Senhas guardadas apenas como hash, nunca em texto. Regra de senha: mínimo de 8 caracteres, com letra maiúscula, número e símbolo.
 - Troca de senha no perfil exige a senha atual. O CPF não pode ser alterado depois do cadastro.
+- Contas criadas pelo administrador nascem sem senha: a pessoa cria a própria senha pelo link enviado por e-mail, e o administrador nunca fica sabendo qual é.
 - Recuperação de senha por link de uso único, com validade de 1 hora, e resposta igual para e-mails que existem ou não.
 - O painel só abre para administradores ativos. Contas inativas ou bloqueadas não conseguem entrar.
 - Duas pessoas não conseguem reservar o mesmo carro no mesmo período, mesmo clicando ao mesmo tempo: a verificação e a gravação da reserva acontecem numa transação que trava o veículo (`select_for_update`).
@@ -313,7 +316,6 @@ O banco segue o dicionário de dados do projeto:
 
 ## Próximos passos
 
-- Reservas e cadastro de usuários criados pelo administrador no painel.
 - Horário de retirada e devolução.
 - Verificação de e-mail no cadastro.
 - Envio real de e-mails (SMTP).

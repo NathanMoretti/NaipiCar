@@ -84,6 +84,29 @@
         .painel { position: fixed; z-index: 50; top: 0; right: 0; bottom: 0; width: min(420px, 100%); max-height: none; border-radius: 14px 0 0 14px; box-shadow: -8px 0 30px rgba(0,0,0,.18); }
         .fundo:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.4); }
     }
+    /* Pop-up: novo usuário */
+    .modal { border: 0; padding: 0; border-radius: 16px; width: min(720px, calc(100% - 32px)); max-height: 94vh; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; color: var(--texto); }
+    .modal[open] { display: flex; flex-direction: column; }
+    .modal::backdrop { background: rgba(10, 30, 25, .55); }
+    .modal form { display: flex; flex-direction: column; min-height: 0; flex: 1; margin: 0; }
+    .modal-topo { display: flex; justify-content: space-between; align-items: center; padding: 22px 32px; border-bottom: 1px solid var(--borda); }
+    .modal-topo h2 { margin: 0; font-size: 1.375rem; font-weight: 700; }
+    .modal-x { border: 0; background: #eef1f3; width: 32px; height: 32px; border-radius: 50%; color: var(--suave); cursor: pointer; }
+    .modal-x:hover { background: #e1e6ea; color: var(--texto); }
+    .modal-corpo { padding: 22px 32px; overflow-y: auto; }
+    .modal-rodape { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 32px; border-top: 1px solid var(--borda); }
+    .modal-corpo h3 { font-size: .75rem; letter-spacing: .05em; text-transform: uppercase; color: var(--suave); margin: 18px 0 10px; }
+    .modal-corpo h3:first-of-type { margin-top: 0; }
+    .rotulo { display: block; font-size: .8125rem; font-weight: 600; margin-bottom: 6px; }
+    .grade-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+    .grade-form .inteira { grid-column: 1 / -1; }
+    .grade-form input:not([type=checkbox]), .grade-form select { width: 100%; height: 44px; padding: 0 14px; border: 1px solid var(--borda); border-radius: 8px; font: inherit; font-size: .9375rem; background: #fff; color: var(--texto); }
+    .aceite { display: flex; gap: 10px; align-items: flex-start; font-size: .875rem; }
+    .aceite input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--verde); }
+    .erro-campo { color: var(--erro); font-size: .75rem; margin-top: 4px; }
+    .dica { color: var(--suave); font-size: .75rem; margin-top: 4px; }
+    .aviso-senha { display: flex; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #e0efff; color: #1d5fb3; font-size: .8125rem; margin-top: 18px; }
+    @media (max-width: 560px) { .grade-form { grid-template-columns: 1fr; } .modal-topo, .modal-corpo, .modal-rodape { padding-left: 20px; padding-right: 20px; } }
 </style>
 {% endblock %}
 
@@ -93,6 +116,7 @@
         <h1>Usuários</h1>
         <div class="pl-migalhas">Clientes e administradores cadastrados na NaipiCar.</div>
     </div>
+    <button type="button" class="btn btn-verde" id="btn-novo"><i class="bi bi-person-plus"></i> Novo usuário</button>
 </div>
 
 <div class="cartoes">
@@ -225,6 +249,113 @@
     </aside>
 </div>
 <div class="fundo" id="fundo" hidden></div>
+
+<!-- Pop-up: novo usuário (cadastro feito pelo administrador) -->
+<dialog id="modal-novo" class="modal" aria-labelledby="u-titulo" data-abrir="{% if abrir_novo %}1{% endif %}">
+    <form method="post" action="{% url 'painel_usuario_novo' %}" novalidate>
+        {% csrf_token %}
+        {% if para_reserva %}<input type="hidden" name="para_reserva" value="1">{% endif %}
+        <div class="modal-topo">
+            <h2 id="u-titulo">{% if para_reserva %}Cadastrar cliente para a reserva{% else %}Novo usuário{% endif %}</h2>
+            <button type="button" class="modal-x" id="u-fechar" aria-label="Fechar"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div class="modal-corpo">
+            {% if form_usuario.non_field_errors %}<div class="pl-alerta">{{ form_usuario.non_field_errors|join:" " }}</div>{% endif %}
+
+            <h3>Dados pessoais</h3>
+            <div class="grade-form">
+                <div class="inteira">
+                    <label class="rotulo" for="{{ form_usuario.full_name.id_for_label }}">{{ form_usuario.full_name.label }}</label>
+                    {{ form_usuario.full_name }}
+                    {% if form_usuario.full_name.help_text %}<div class="dica">{{ form_usuario.full_name.help_text }}</div>{% endif %}
+                    {% for e in form_usuario.full_name.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form_usuario.cpf.id_for_label }}">{{ form_usuario.cpf.label }}</label>
+                    {{ form_usuario.cpf }}
+                    {% if form_usuario.cpf.help_text %}<div class="dica">{{ form_usuario.cpf.help_text }}</div>{% endif %}
+                    {% for e in form_usuario.cpf.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form_usuario.phone.id_for_label }}">{{ form_usuario.phone.label }}</label>
+                    {{ form_usuario.phone }}
+                    {% if form_usuario.phone.help_text %}<div class="dica">{{ form_usuario.phone.help_text }}</div>{% endif %}
+                    {% for e in form_usuario.phone.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="inteira">
+                    <label class="rotulo" for="{{ form_usuario.email.id_for_label }}">{{ form_usuario.email.label }}</label>
+                    {{ form_usuario.email }}
+                    {% if form_usuario.email.help_text %}<div class="dica">{{ form_usuario.email.help_text }}</div>{% endif %}
+                    {% for e in form_usuario.email.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form_usuario.profile_type.id_for_label }}">{{ form_usuario.profile_type.label }}</label>
+                    {{ form_usuario.profile_type }}
+                    {% if form_usuario.profile_type.help_text %}<div class="dica">{{ form_usuario.profile_type.help_text }}</div>{% endif %}
+                    {% for e in form_usuario.profile_type.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+            </div>
+
+            <h3>Endereço</h3>
+            <div class="grade-form">
+                <div>
+                    <label class="rotulo" for="{{ form_usuario.zip_code.id_for_label }}">{{ form_usuario.zip_code.label }}</label>
+                    {{ form_usuario.zip_code }}
+                    {% if form_usuario.zip_code.help_text %}<div class="dica">{{ form_usuario.zip_code.help_text }}</div>{% endif %}
+                    {% for e in form_usuario.zip_code.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form_usuario.street.id_for_label }}">{{ form_usuario.street.label }}</label>
+                    {{ form_usuario.street }}
+                    {% if form_usuario.street.help_text %}<div class="dica">{{ form_usuario.street.help_text }}</div>{% endif %}
+                    {% for e in form_usuario.street.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form_usuario.number.id_for_label }}">{{ form_usuario.number.label }}</label>
+                    {{ form_usuario.number }}
+                    {% if form_usuario.number.help_text %}<div class="dica">{{ form_usuario.number.help_text }}</div>{% endif %}
+                    {% for e in form_usuario.number.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form_usuario.complement.id_for_label }}">{{ form_usuario.complement.label }}</label>
+                    {{ form_usuario.complement }}
+                    {% if form_usuario.complement.help_text %}<div class="dica">{{ form_usuario.complement.help_text }}</div>{% endif %}
+                    {% for e in form_usuario.complement.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form_usuario.neighborhood.id_for_label }}">{{ form_usuario.neighborhood.label }}</label>
+                    {{ form_usuario.neighborhood }}
+                    {% if form_usuario.neighborhood.help_text %}<div class="dica">{{ form_usuario.neighborhood.help_text }}</div>{% endif %}
+                    {% for e in form_usuario.neighborhood.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form_usuario.city.id_for_label }}">{{ form_usuario.city.label }}</label>
+                    {{ form_usuario.city }}
+                    {% if form_usuario.city.help_text %}<div class="dica">{{ form_usuario.city.help_text }}</div>{% endif %}
+                    {% for e in form_usuario.city.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label class="rotulo" for="{{ form_usuario.state.id_for_label }}">{{ form_usuario.state.label }}</label>
+                    {{ form_usuario.state }}
+                    {% if form_usuario.state.help_text %}<div class="dica">{{ form_usuario.state.help_text }}</div>{% endif %}
+                    {% for e in form_usuario.state.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+                <div class="inteira">
+                    <label class="aceite">{{ form_usuario.accept_terms }} <span>{{ form_usuario.accept_terms.label }} <a href="{% url 'termos' %}" target="_blank" rel="noopener" style="color: var(--verde); font-weight: 600;">Ver termos</a></span></label>
+                    {% for e in form_usuario.accept_terms.errors %}<div class="erro-campo">{{ e }}</div>{% endfor %}
+                </div>
+            </div>
+
+            <div class="aviso-senha"><i class="bi bi-envelope"></i><span>A conta é criada sem senha. A pessoa recebe por e-mail um link para criar a própria senha, e você não precisa saber qual é.</span></div>
+        </div>
+
+        <div class="modal-rodape">
+            <button type="button" class="btn btn-contorno" id="u-cancelar">Cancelar</button>
+            <button type="submit" class="btn btn-verde">{% if para_reserva %}Cadastrar e voltar para a reserva{% else %}Cadastrar usuário{% endif %}</button>
+        </div>
+    </form>
+</dialog>
 {% endblock %}
 
 {% block scripts %}
@@ -331,6 +462,17 @@
     ["f-perfil", "f-situacao"].forEach(function (id) {
         $(id).addEventListener("change", function () { this.form.submit(); });
     });
+})();
+
+// Pop-up "Novo usuário"
+(function () {
+    var modal = document.getElementById("modal-novo");
+    function fechar() { modal.close(); }
+    document.getElementById("btn-novo").addEventListener("click", function () { modal.showModal(); });
+    document.getElementById("u-fechar").addEventListener("click", fechar);
+    document.getElementById("u-cancelar").addEventListener("click", fechar);
+    modal.addEventListener("click", function (e) { if (e.target === modal) fechar(); });
+    if (modal.dataset.abrir) modal.showModal();
 })();
 </script>
 {% endblock %}

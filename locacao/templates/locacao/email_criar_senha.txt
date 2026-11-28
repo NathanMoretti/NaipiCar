@@ -1,0 +1,13 @@
+{% autoescape off %}Olá, {{ user.first_name }}!
+
+A sua conta na NaipiCar foi criada pela nossa equipe de atendimento.
+Para acessar o site e acompanhar as suas reservas, crie a sua senha pelo link abaixo.
+Ele vale por 1 hora:
+
+{{ protocol }}://{{ domain }}{% url 'redefinir_senha' uidb64=uid token=token %}
+
+Se o link expirar, use "Esqueci minha senha" na tela de login com este e-mail
+({{ email }}) para receber um novo.
+
+NaipiCar - Seu caminho começa em Foz.
+{% endautoescape %}
