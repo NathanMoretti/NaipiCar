@@ -4,8 +4,10 @@ Uso:  python manage.py popular_dados
 Pode ser executado várias vezes sem duplicar nada.
 """
 from datetime import timedelta
+from pathlib import Path
 from decimal import Decimal
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -48,6 +50,22 @@ VEICULOS = [
     ('RES2L23', 'Fiat', 'Strada', 2024, 27400, 'Pickup', 'B', True),
     ('LOC3M34', 'Toyota', 'Hilux', 2024, 35600, 'Pickup', 'C', False),  # em manutenção
 ]
+
+# Foto de cada veículo (arquivos que já estão na pasta media/veiculos/)
+FOTOS = {
+    'FOZ1A23': 'veiculos/mobi.png',
+    'IGU2B34': 'veiculos/kwid.png',
+    'CAT3C45': 'veiculos/onix.jpg',
+    'PRA4D56': 'veiculos/hb20.png',
+    'BRA5E67': 'veiculos/polo.png',
+    'ARG6F78': 'veiculos/onix-plus.png',
+    'PYC7G89': 'veiculos/corolla.png',
+    'NAI8H90': 'veiculos/pulse.png',
+    'PIC9J01': 'veiculos/t-cross.png',
+    'CAR1K12': 'veiculos/compass.png',
+    'RES2L23': 'veiculos/strada.png',
+    'LOC3M34': 'veiculos/hilux.png',
+}
 
 # (nome completo, e-mail, base do CPF, telefone, rua, número, bairro, CEP)
 CLIENTES = [
@@ -116,6 +134,12 @@ class Command(BaseCommand):
                 placa=placa, defaults={
                     'modelo': modelo_obj, 'categoria_classe': combos[(cat, cla)],
                     'ano': ano, 'quilometragem': km, 'disponivel': disponivel})[0]
+            # Coloca a foto se o veículo ainda não tiver uma (não troca foto já escolhida no painel)
+            foto = FOTOS.get(placa)
+            veiculo = veiculos[placa]
+            if foto and not veiculo.imagem and (Path(settings.MEDIA_ROOT) / foto).exists():
+                veiculo.imagem.name = foto
+                veiculo.save(update_fields=['imagem'])
 
         # --- clientes (nenhum administrador é criado) -----------------------
         clientes, novos_clientes = {}, 0
